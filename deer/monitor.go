@@ -8,6 +8,10 @@ type Validatable interface {
 	Validate() error
 }
 
+type Runnable interface {
+	RunFn() func()
+}
+
 // Monitor keeps the configuration of a single monitor.
 // It aggregates one or more services.
 type Monitor struct {
@@ -32,12 +36,13 @@ type Service struct {
 // HttpCheck defines http type check.
 type HttpCheck struct {
 	// body
-	IntervalSec  int      `hcl:"interval"`
-	TimeoutSec   int      `hcl:"timeout"`
+	IntervalSec  uint64   `hcl:"interval"`
+	TimeoutSec   uint64   `hcl:"timeout"`
 	Addr         string   `hcl:"addr"`
 	Expectations []Expect `hcl:"expect,block"`
 }
 
+// Validate ensures correct values are set for http check.
 func (h *HttpCheck) Validate() error {
 	switch {
 	case h.TimeoutSec <= 0:
@@ -49,9 +54,16 @@ func (h *HttpCheck) Validate() error {
 	case len(h.Addr) == 0:
 		return fmt.Errorf("Addr cannot be empty")
 
-	case len(h.Expectations) < 0:
+	case len(h.Expectations) == 0:
 		return fmt.Errorf("At least one expectation fot http check is required")
 	}
 
 	return nil
+}
+
+// RunFn returns task function to run check.
+func (h *HttpCheck) RunFn() func() {
+	return func() {
+		fmt.Println("GET", h.Addr, "timeout", h.TimeoutSec)
+	}
 }

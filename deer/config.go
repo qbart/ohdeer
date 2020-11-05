@@ -2,6 +2,7 @@ package deer
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/hashicorp/hcl/v2/hclsimple"
 )
@@ -11,8 +12,18 @@ type Config struct {
 	Monitors []Monitor `hcl:"monitor,block"`
 }
 
-// ParseConfig load and parses config from given path.
-func ParseConfig(path string, src []byte) (*Config, error) {
+// LoadConfig loads and parses config from given path.
+func LoadConfig(path string) (*Config, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseConfig(path, b)
+}
+
+// ParseConfig parses config from given data.
+func parseConfig(path string, src []byte) (*Config, error) {
 	var cfg Config
 	err := hclsimple.Decode(path, src, nil, &cfg)
 
