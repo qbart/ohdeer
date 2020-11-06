@@ -4,10 +4,6 @@ type Validatable interface {
 	Validate() error
 }
 
-type Runnable interface {
-	RunFn() func()
-}
-
 // Monitor keeps the configuration of a single monitor.
 // It aggregates one or more services.
 type Monitor struct {
@@ -15,8 +11,8 @@ type Monitor struct {
 	ID string `hcl:"id,label"`
 
 	// body
-	Name     string    `hcl:"name"`
-	Services []Service `hcl:"service,block"`
+	Name     string     `hcl:"name"`
+	Services []*Service `hcl:"service,block"`
 }
 
 // Service defines monitor checks.
@@ -25,6 +21,11 @@ type Service struct {
 	ID string `hcl:"id,label"`
 
 	// body
-	Name       string      `hcl:"name"`
-	HttpChecks []HttpCheck `hcl:"http,block"`
+	Name       string       `hcl:"name"`
+	HttpChecks []*HttpCheck `hcl:"http,block"`
+}
+
+type ref struct {
+	Monitor *Monitor
+	Service *Service
 }

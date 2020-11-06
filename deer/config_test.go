@@ -134,6 +134,30 @@ func TestParseConfig(t *testing.T) {
 			})
 		})
 
+		g.Describe("Invalid expect", func() {
+			g.It("Fails", func() {
+				_, err := parseConfig("http.hcl", []byte(`
+				monitor "a" {
+					name = "a"
+					service "b" {
+						name = "b"
+						http {
+							interval = 10
+							timeout  = 10
+							addr     = "http://example.com"
+
+							expect "invalid" {
+							  in = [200]
+							}
+						}
+					}
+				}
+				`))
+
+				g.Assert(err.Error()).Equal("Invalid expectation subject")
+			})
+		})
+
 		g.Describe("Missing monitor ID", func() {
 			g.It("Fails", func() {
 				_, err := parseConfig("http.hcl", []byte(`

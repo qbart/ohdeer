@@ -9,7 +9,7 @@ import (
 
 // Config keeps monitor configuration.
 type Config struct {
-	Monitors []Monitor `hcl:"monitor,block"`
+	Monitors []*Monitor `hcl:"monitor,block"`
 }
 
 // LoadConfig loads and parses config from given path.
@@ -45,6 +45,8 @@ func parseConfig(path string, src []byte) (*Config, error) {
 				}
 
 				for _, h := range s.HttpChecks {
+					h.ref = ref{Monitor: m, Service: s}
+
 					if err := h.Validate(); err != nil {
 						return nil, err
 					}

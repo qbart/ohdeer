@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  pg:
+    image: timescale/timescaledb:latest-pg12
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: ohdeer
+      POSTGRES_DB: deer
+      TIMESCALEDB_TELEMETRY: "off"
+
+  pgweb:
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgres://ohdeer:secret@pg:5432/deer?sslmode=disable
+    depends_on:
+      - pg

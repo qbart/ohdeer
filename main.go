@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	"github.com/qbart/ohdeer/deer"
+	"github.com/qbart/ohdeer/deerstore"
 	"github.com/qbart/ohtea/tea"
 )
 
@@ -22,6 +24,15 @@ func main() {
 		return
 	}
 
+	e.Logger.Info("Connecting to store")
+	store, err := deerstore.NewTimescaleDB(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
+	defer store.Close()
+	e.Logger.Info("Init store")
+	store.Init()
+
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
@@ -34,7 +45,7 @@ func main() {
 	}()
 
 	e.Logger.Info("Starting jobs")
-	runner := deer.NewRunner(cfg)
+	runner := deer.NewRunner(cfg, store)
 	go func() {
 		<-runner.Start()
 	}()

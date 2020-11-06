@@ -9,14 +9,16 @@ import (
 // Runner is responsible for scheduling jobs.
 type Runner struct {
 	cfg    *Config
-	m      sync.RWMutex
+	m      sync.Mutex
 	cronCh chan bool
+	store  Store
 }
 
 // NewRunner creates runner instance.
-func NewRunner(cfg *Config) *Runner {
+func NewRunner(cfg *Config, store Store) *Runner {
 	return &Runner{
-		cfg: cfg,
+		cfg:   cfg,
+		store: store,
 	}
 }
 
@@ -28,7 +30,7 @@ func (r *Runner) Start() chan bool {
 	for _, m := range r.cfg.Monitors {
 		for _, s := range m.Services {
 			for _, h := range s.HttpChecks {
-				gocron.Every(h.IntervalSec).Seconds().Do(h.RunFn())
+				gocron.Every(h.IntervalSec).Seconds().Do(h.RunFn(r.store))
 			}
 		}
 	}

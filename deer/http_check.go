@@ -1,9 +1,15 @@
 package deer
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
 
 // HttpCheck defines http type check.
 type HttpCheck struct {
+	ref
+
 	// body
 	IntervalSec  uint64   `hcl:"interval"`
 	TimeoutSec   uint64   `hcl:"timeout"`
@@ -27,12 +33,56 @@ func (h *HttpCheck) Validate() error {
 		return fmt.Errorf("At least one expectation fot http check is required")
 	}
 
+	for _, expect := range h.Expectations {
+		if expect.Subject != "status" {
+			return fmt.Errorf("Invalid expectation subject")
+		}
+	}
+
 	return nil
 }
 
 // RunFn returns task function to run check.
-func (h *HttpCheck) RunFn() func() {
+func (h *HttpCheck) RunFn(s Store) func() {
+	store := s
+
 	return func() {
-		fmt.Println("GET", h.Addr, "timeout", h.TimeoutSec)
+		client := http.Client{
+			Timeout: time.Duration(h.TimeoutSec) * time.Second,
+		}
+		resp, err := client.Get(h.Addr)
+
+		success := h.Check(resp, err)
+		result := CheckResult{
+			MonitorID: h.ref.Monitor.ID,
+			ServiceID: h.ref.Service.ID,
+			Success:   success,
+		}
+		store.Save(&result)
 	}
+}
+
+// Check verifies if check is valid or not.
+func (h *HttpCheck) Check(resp *http.Response, err error) bool {
+	if err != nil {
+		return false
+	}
+
+	success := true
+
+	for _, expect := range h.Expectations {
+		switch expect.Subject {
+		case "subject":
+			status := resp.StatusCode
+			found := false
+			for _, s := range expect.Inclusion {
+				if s == status {
+					found = true
+				}
+			}
+
+			success = success && found
+		}
+	}
+	return success
 }
