@@ -1,6 +1,7 @@
 package deer
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -46,6 +47,7 @@ func (h *HttpCheck) RunFn(s Store) func() {
 	store := s
 
 	return func() {
+		now := time.Now()
 		req := Request{}
 		resp := req.Get(h.Addr, time.Duration(h.TimeoutSec)*time.Second)
 
@@ -53,9 +55,10 @@ func (h *HttpCheck) RunFn(s Store) func() {
 		result := CheckResult{
 			MonitorID: h.ref.Monitor.ID,
 			ServiceID: h.ref.Service.ID,
+			At:        now,
 			Success:   success,
 		}
-		store.Save(&result)
+		store.Save(context.Background(), &result)
 	}
 }
 

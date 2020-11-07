@@ -1,6 +1,8 @@
 package deer
 
 import (
+	"context"
+
 	"github.com/jasonlvhit/gocron"
 )
 
@@ -20,7 +22,7 @@ func NewRunner(cfg *Config, store Store) *Runner {
 }
 
 // Start begins cron jobs.
-func (r *Runner) Start() {
+func (r *Runner) Start(ctx context.Context) {
 	for _, m := range r.cfg.Monitors {
 		for _, s := range m.Services {
 			for _, h := range s.HttpChecks {
@@ -33,7 +35,7 @@ func (r *Runner) Start() {
 	<-r.cronCh
 }
 
-func (r *Runner) Shutdown() {
+func (r *Runner) Shutdown(ctx context.Context) {
 	r.cronCh <- true
 	gocron.Clear()
 }

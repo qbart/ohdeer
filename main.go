@@ -21,17 +21,20 @@ func main() {
 	cfg, err := deer.LoadConfig("./ohdeer.hcl")
 	if err != nil {
 		e.Logger.Fatal(err)
-		return
 	}
 
+	ctx := context.Background()
+
 	e.Logger.Info("Connecting to store")
-	store, err := deerstore.NewTimescaleDB(os.Getenv("DATABASE_URL"))
+	store, err := deerstore.NewTimescaleDB(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
-	defer store.Close()
-	e.Logger.Info("Init store")
-	store.Init()
+	defer store.Close(ctx)
+	e.Logger.Info(ctx, "Init store")
+	if err := store.Init(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
 
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
@@ -46,16 +49,15 @@ func main() {
 
 	e.Logger.Info("Starting jobs")
 	runner := deer.NewRunner(cfg, store)
-	go runner.Start()
-	defer runner.Shutdown()
+	go runner.Start(ctx)
 
 	tea.SysCallWaitDefault()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	e.Logger.Info("Shutting down the runner")
-	runner.Shutdown()
-	if err := e.Shutdown(ctx); err != nil {
+	runner.Shutdown(timeoutCtx)
+	if err := e.Shutdown(timeoutCtx); err != nil {
 		e.Logger.Fatal(err)
 	}
 }

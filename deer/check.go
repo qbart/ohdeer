@@ -1,9 +1,12 @@
 package deer
 
+import "time"
+
 // CheckResult is a struct.
 type CheckResult struct {
 	MonitorID string
 	ServiceID string
+	At        time.Time
 	Success   bool
 }
 

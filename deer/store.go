@@ -1,14 +1,16 @@
 package deer
 
+import "context"
+
 // Store interface.
 type Store interface {
 	// Init runs right after creating a connection to store.
 	// Store implementation is responsible for creating/migrating schema.
-	Init()
+	Init(ctx context.Context) error
 
 	// Close shuts down the connection to store.
-	Close()
+	Close(ctx context.Context)
 
 	// Save inserts service check result to store.
-	Save(result *CheckResult)
+	Save(ctx context.Context, result *CheckResult)
 }
