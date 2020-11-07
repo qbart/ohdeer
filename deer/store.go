@@ -2,7 +2,7 @@ package deer
 
 // Store interface.
 type Store interface {
-	// Init runs right after create a connection to store.
+	// Init runs right after creating a connection to store.
 	// Store implementation is responsible for creating/migrating schema.
 	Init()
 

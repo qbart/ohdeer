@@ -46,9 +46,8 @@ func main() {
 
 	e.Logger.Info("Starting jobs")
 	runner := deer.NewRunner(cfg, store)
-	go func() {
-		<-runner.Start()
-	}()
+	go runner.Start()
+	defer runner.Shutdown()
 
 	tea.SysCallWaitDefault()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

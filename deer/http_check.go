@@ -2,7 +2,6 @@ package deer
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 )
 
@@ -47,12 +46,10 @@ func (h *HttpCheck) RunFn(s Store) func() {
 	store := s
 
 	return func() {
-		client := http.Client{
-			Timeout: time.Duration(h.TimeoutSec) * time.Second,
-		}
-		resp, err := client.Get(h.Addr)
+		req := Request{}
+		resp := req.Get(h.Addr, time.Duration(h.TimeoutSec)*time.Second)
 
-		success := h.Check(resp, err)
+		success := h.Check(resp)
 		result := CheckResult{
 			MonitorID: h.ref.Monitor.ID,
 			ServiceID: h.ref.Service.ID,
@@ -63,8 +60,8 @@ func (h *HttpCheck) RunFn(s Store) func() {
 }
 
 // Check verifies if check is valid or not.
-func (h *HttpCheck) Check(resp *http.Response, err error) bool {
-	if err != nil {
+func (h *HttpCheck) Check(resp *Response) bool {
+	if resp.Err != nil {
 		return false
 	}
 
@@ -73,7 +70,7 @@ func (h *HttpCheck) Check(resp *http.Response, err error) bool {
 	for _, expect := range h.Expectations {
 		switch expect.Subject {
 		case "subject":
-			status := resp.StatusCode
+			status := resp.Resp.StatusCode
 			found := false
 			for _, s := range expect.Inclusion {
 				if s == status {

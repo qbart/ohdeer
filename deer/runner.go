@@ -1,15 +1,12 @@
 package deer
 
 import (
-	"sync"
-
 	"github.com/jasonlvhit/gocron"
 )
 
 // Runner is responsible for scheduling jobs.
 type Runner struct {
 	cfg    *Config
-	m      sync.Mutex
 	cronCh chan bool
 	store  Store
 }
@@ -23,10 +20,7 @@ func NewRunner(cfg *Config, store Store) *Runner {
 }
 
 // Start begins cron jobs.
-func (r *Runner) Start() chan bool {
-	r.m.Lock()
-	defer r.m.Unlock()
-
+func (r *Runner) Start() {
 	for _, m := range r.cfg.Monitors {
 		for _, s := range m.Services {
 			for _, h := range s.HttpChecks {
@@ -36,13 +30,10 @@ func (r *Runner) Start() chan bool {
 	}
 
 	r.cronCh = gocron.Start()
-	return r.cronCh
+	<-r.cronCh
 }
 
 func (r *Runner) Shutdown() {
-	r.m.Lock()
-	defer r.m.Unlock()
-
 	r.cronCh <- true
 	gocron.Clear()
 }

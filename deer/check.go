@@ -1,9 +1,5 @@
 package deer
 
-import (
-	"net/http"
-)
-
 // CheckResult is a struct.
 type CheckResult struct {
 	MonitorID string
@@ -16,5 +12,5 @@ type Check interface {
 	Validatable
 
 	RunFn(s *Store) func()
-	Check(resp http.Response, err error) bool
+	Check(resp *Response) bool
 }
