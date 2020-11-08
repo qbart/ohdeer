@@ -102,7 +102,7 @@ WITH data AS (
 SELECT
   monitor_id,
   service_id,
-  time_bucket('1 minute', at) AS bucket,
+  time_bucket('1 hour', at) AS bucket,
   count(*) filter (where success is true) as healthy_total,
   count(*) as total
 FROM data
@@ -111,7 +111,7 @@ GROUP BY monitor_id, service_id, bucket
 SELECT
   monitor_id,
   null AS service_id,
-  time_bucket('1 minute', at) AS bucket,
+  time_bucket('1 hour', at) AS bucket,
   count(*) filter (where success is true) as healthy_total,
   count(*) as total
 FROM data
