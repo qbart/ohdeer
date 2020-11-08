@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/qbart/ohdeer/deer"
@@ -67,3 +68,57 @@ func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 		"{}",
 	)
 }
+
+func (m *TimescaleDB) Read(ctx context.Context) ([]*deer.Metric, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	rows, err := m.db.QueryContext(queryCtx, metricsSql)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*deer.Metric, 0, 24)
+
+	for rows.Next() {
+		var metric deer.Metric
+		if err := rows.Scan(
+			&metric.MonitorID,
+			&metric.ServiceID,
+			&metric.Bucket,
+			&metric.Health,
+		); err != nil {
+			return nil, err
+		}
+		res = append(res, &metric)
+	}
+
+	return res, nil
+}
+
+const metricsSql string = `
+WITH data AS (
+  SELECT * FROM metrics WHERE at >= NOW() - INTERVAL '24 hours'
+), series_by_service AS (
+SELECT
+  monitor_id,
+  service_id,
+  time_bucket('1 minute', at) AS bucket,
+  count(*) filter (where success is true) as healthy_total,
+  count(*) as total
+FROM data
+GROUP BY monitor_id, service_id, bucket
+), series_by_monitor AS (
+SELECT
+  monitor_id,
+  null AS service_id,
+  time_bucket('1 minute', at) AS bucket,
+  count(*) filter (where success is true) as healthy_total,
+  count(*) as total
+FROM data
+GROUP BY monitor_id, bucket
+)
+  SELECT monitor_id, service_id, bucket, (healthy_total / total) AS health FROM series_by_monitor
+UNION ALL
+  SELECT monitor_id, service_id, bucket, (healthy_total / total) AS health FROM series_by_service
+ORDER BY monitor_id, bucket, service_id NULLS FIRST
+`
