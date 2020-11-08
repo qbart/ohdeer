@@ -117,8 +117,8 @@ SELECT
 FROM data
 GROUP BY monitor_id, bucket
 )
-  SELECT monitor_id, service_id, bucket, (healthy_total / total) AS health FROM series_by_monitor
+  SELECT monitor_id, service_id, bucket, (healthy_total::numeric / total) AS health FROM series_by_monitor
 UNION ALL
-  SELECT monitor_id, service_id, bucket, (healthy_total / total) AS health FROM series_by_service
+  SELECT monitor_id, service_id, bucket, (healthy_total::numeric / total) AS health FROM series_by_service
 ORDER BY monitor_id, bucket, service_id NULLS FIRST
 `
