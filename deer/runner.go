@@ -32,9 +32,19 @@ func (r *Runner) Start(ctx context.Context) {
 	}
 
 	r.cronCh = gocron.Start()
-	<-r.cronCh
+LOOP:
+	for {
+		select {
+		case <-r.cronCh:
+			break LOOP
+		case <-ctx.Done():
+			r.cronCh <- true
+			break LOOP
+		}
+	}
 }
 
+// Shutdown stops all the tasks and closes scheduler.
 func (r *Runner) Shutdown(ctx context.Context) {
 	r.cronCh <- true
 	gocron.Clear()

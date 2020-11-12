@@ -8,9 +8,9 @@ import (
 
 func TestParseConfig(t *testing.T) {
 	g := goblin.Goblin(t)
-	g.Describe(".parseConfig", func() {
+	g.Describe(".ParseConfig", func() {
 		g.Describe("Valid config", func() {
-			c, err := parseConfig("http.hcl", []byte(`
+			c, err := ParseConfig("http.hcl", []byte(`
 			monitor "aws:eu-west-1" {
 				name = "AWS Europe"
 
@@ -64,7 +64,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Invalid timeout", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 					name = "a"
 					service "b" {
@@ -88,7 +88,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Invalid interval", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 					name = "a"
 					service "b" {
@@ -112,7 +112,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Invalid address", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 					name = "a"
 					service "b" {
@@ -136,7 +136,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Invalid expect", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 					name = "a"
 					service "b" {
@@ -160,7 +160,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Missing monitor ID", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "" {
 				  name = "a"
 				}
@@ -172,7 +172,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Missing monitor name", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 				  name = ""
 				}
@@ -184,7 +184,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Missing service ID", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 				  name = "a"
 				  service "" {
@@ -199,7 +199,7 @@ func TestParseConfig(t *testing.T) {
 
 		g.Describe("Missing service name", func() {
 			g.It("Fails", func() {
-				_, err := parseConfig("http.hcl", []byte(`
+				_, err := ParseConfig("http.hcl", []byte(`
 				monitor "a" {
 				  name = "a"
 				  service "b" {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohdeer/deerstore"
@@ -15,6 +16,7 @@ import (
 
 func main() {
 	e := echo.New()
+	e.Use(middleware.Secure())
 	e.Logger.SetLevel(log.INFO)
 
 	e.Logger.Info("Loading config")
@@ -29,14 +31,14 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 	defer store.Close(context.Background())
-	e.Logger.Info(context.Background(), "Init store")
-	if err := store.Init(context.Background()); err != nil {
+	e.Logger.Info(context.Background(), "Migrate store")
+	if err := store.Migrate(context.Background()); err != nil {
 		e.Logger.Fatal(err)
 	}
 
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Oh! Deer!")
+		return nil
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))

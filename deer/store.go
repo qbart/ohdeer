@@ -7,9 +7,9 @@ import (
 
 // Store interface.
 type Store interface {
-	// Init runs right after creating a connection to store.
+	// Migrate runs right after creating a connection to store.
 	// Store implementation is responsible for creating/migrating schema.
-	Init(ctx context.Context) error
+	Migrate(ctx context.Context) error
 
 	// Close shuts down the connection to store.
 	Close(ctx context.Context)
@@ -27,4 +27,5 @@ type Metric struct {
 	ServiceID *string   `json:"service_id,omitempty"`
 	Bucket    time.Time `json:"bucket"`
 	Health    float64   `json:"health"`
+	Details   Details   `json:"details"`
 }

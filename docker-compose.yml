@@ -12,6 +12,17 @@ services:
       POSTGRES_DB: deer
       TIMESCALEDB_TELEMETRY: "off"
 
+  pgt:
+    image: timescale/timescaledb:latest-pg12
+    restart: always
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: ohdeer
+      POSTGRES_DB: deer_test
+      TIMESCALEDB_TELEMETRY: "off"
+
   pgweb:
     restart: always
     image: sosedoff/pgweb

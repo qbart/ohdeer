@@ -57,6 +57,7 @@ func (h *HttpCheck) RunFn(s Store) func() {
 			ServiceID: h.ref.Service.ID,
 			At:        now,
 			Success:   success,
+			Trace:     &resp.Trace,
 		}
 		store.Save(context.Background(), &result)
 	}

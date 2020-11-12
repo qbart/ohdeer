@@ -19,11 +19,11 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
-	return parseConfig(path, b)
+	return ParseConfig(path, b)
 }
 
 // ParseConfig parses config from given data.
-func parseConfig(path string, src []byte) (*Config, error) {
+func ParseConfig(path string, src []byte) (*Config, error) {
 	var cfg Config
 	err := hclsimple.Decode(path, src, nil, &cfg)
 

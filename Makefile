@@ -1,5 +1,6 @@
 test:
-	go test ./...
+	DATABASE_TEST_URL=postgres://ohdeer:secret@localhost:5433/deer_test?sslmode=disable \
+	go test -timeout 60s ./... 
 
 build:
 	mkdir -p bin/
