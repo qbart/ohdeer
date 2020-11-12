@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -36,9 +38,23 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 
+	e.Renderer = &Template{
+		templates: template.Must(template.ParseGlob("static/*.html")),
+	}
 	e.Logger.Info("Starting server")
+	e.Static("/static", "static")
 	e.GET("/", func(c echo.Context) error {
-		return nil
+		pusher, ok := c.Response().Writer.(http.Pusher)
+		if ok {
+			if err = pusher.Push("/static/boostrap.min.css", nil); err != nil {
+				// return nil
+			}
+			if err = pusher.Push("/static/bootstrap.bundle.min.js", nil); err != nil {
+				// return nil
+			}
+		}
+		// data, err := store.Read(context.Background())
+		return c.Render(http.StatusOK, "index", cfg)
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
@@ -104,4 +120,16 @@ func buildConfigResp(cfg *deer.Config) *configResp {
 	}
 
 	return &r
+}
+
+type IndexView struct {
+	Monitors []map[string]interface{}
+}
+
+type Template struct {
+	templates *template.Template
+}
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
 }

@@ -123,7 +123,9 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 	}
 
 	resp.Resp, resp.Err = client.Do(req)
-	io.Copy(ioutil.Discard, resp.Resp.Body) // simulate body read
+	if resp.Err == nil {
+		io.Copy(ioutil.Discard, resp.Resp.Body) // simulate body read
+	}
 
 	times[tReqDone] = time.Now()
 	times[tReqStart] = times[tDnsStart]
