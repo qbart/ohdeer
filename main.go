@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/qbart/ohdeer/deer"
+	"github.com/qbart/ohdeer/deerstatic"
 	"github.com/qbart/ohdeer/deerstore"
 	"github.com/qbart/ohtea/tea"
 	"golang.org/x/crypto/acme/autocert"
@@ -48,20 +49,10 @@ func main() {
 	}
 
 	e.Renderer = &Template{
-		templates: template.Must(template.ParseGlob("static/*.html")),
+		templates: template.Must(template.New("index").Parse(deerstatic.IndexTpl)),
 	}
 	e.Logger.Info("Starting server")
-	e.Static("/static", "static")
 	e.GET("/", func(c echo.Context) error {
-		pusher, ok := c.Response().Writer.(http.Pusher)
-		if ok {
-			if err = pusher.Push("/static/boostrap.min.css", nil); err != nil {
-				// return nil
-			}
-			if err = pusher.Push("/static/bootstrap.bundle.min.js", nil); err != nil {
-				// return nil
-			}
-		}
 		data, err := store.Read(context.Background())
 		if err != nil {
 			e.Logger.Error(err)
