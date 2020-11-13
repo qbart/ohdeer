@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/qbart/ohdeer/deer"
-	"github.com/qbart/ohowl/tea"
+	"github.com/qbart/ohtea/tea"
 )
 
 type TimescaleDB struct {
