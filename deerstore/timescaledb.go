@@ -82,6 +82,7 @@ func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 func (m *TimescaleDB) Read(ctx context.Context) ([]*deer.Metric, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	//TODO only fetch active monitors
 
 	rows, err := m.db.QueryContext(queryCtx, metricsSql)
 	if err != nil {
@@ -110,7 +111,7 @@ WITH series_by_service AS (
 SELECT
   monitor_id,
   service_id,
-  time_bucket_gapfill('1 hour', at, now() - INTERVAL '24 hours', now()) AS bucket,
+  time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
   count(*) filter (where success is true) as healthy_total,
   count(*) as total
 FROM metrics
@@ -118,14 +119,14 @@ GROUP BY monitor_id, service_id, bucket
 ), series_by_monitor AS (
 SELECT
   monitor_id,
-  time_bucket_gapfill('1 hour', at, now() - INTERVAL '24 hours', now()) AS bucket,
+  time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
   count(*) filter (where success is true) as healthy_total,
   count(*) as total
 FROM metrics
 GROUP BY monitor_id, bucket
 )
-  SELECT monitor_id, NULL::varchar AS service_id, bucket, (healthy_total::numeric / total) AS health FROM series_by_monitor
+  SELECT monitor_id, NULL::varchar AS service_id, bucket, COALESCE((healthy_total::numeric / total), -1) AS health FROM series_by_monitor
 UNION ALL
-  SELECT monitor_id, service_id, bucket, (healthy_total::numeric / total) AS health FROM series_by_service
+  SELECT monitor_id, service_id, bucket, COALESCE((healthy_total::numeric / total), -1)  FROM series_by_service
 ORDER BY monitor_id, service_id NULLS FIRST, bucket
 `

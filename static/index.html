@@ -1,0 +1,53 @@
+{{define "index"}}
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <link rel="stylesheet" href="/static/bootstrap.min.css">
+        <title>Oh! Deer!</title>
+    </head>
+
+    <body>
+        <div class="container">
+            {{range .Monitors}}
+            <div class="row">
+                <div class="col">
+                    <div class="shadow p-3 mb-5 bg-white rounded">
+                        <h4>{{.Name}}</h4>
+                        {{range .Health}}
+                            {{ if eq .Health 1.0 }}
+                            <span class="badge badge-success" title="{{.When}} {{.Health}}">&nbsp;</span>
+                            {{ else if eq .Health -1.0 }}
+                            <span class="badge badge-secondary" title="{{.When}} {{.Health}}">&nbsp;</span>
+                            {{ else }}
+                            <span class="badge badge-danger" title="{{.When}} {{.Health}}">&nbsp;</span>
+                            {{end}}
+                        {{end}}
+                        <ul class="list-group">
+                            {{range .Services}}
+                                <li class="list-group-item">
+                                    <strong>{{.Name}}</strong><br>
+                                    {{range .Health}}
+                                        {{ if eq .Health 1.0 }}
+                                        <span class="badge badge-success" title="{{.When}} {{.Health}}">&nbsp;</span>
+                                        {{ else if eq .Health -1.0 }}
+                                        <span class="badge badge-secondary" title="{{.When}} {{.Health}}">&nbsp;</span>
+                                        {{ else }}
+                                        <span class="badge badge-danger" title="{{.When}} {{.Health}}">&nbsp;</span>
+                                        {{end}}
+                                    {{end}}
+                                </li>
+                            {{end}}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+
+        <script src="/static/bootstrap.bundle.min.js"></script>
+    </body>
+</html>
+{{end}}

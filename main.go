@@ -53,8 +53,19 @@ func main() {
 				// return nil
 			}
 		}
-		// data, err := store.Read(context.Background())
-		return c.Render(http.StatusOK, "index", cfg)
+		data, err := store.Read(context.Background())
+		if err != nil {
+			e.Logger.Error(err)
+			return c.String(http.StatusInternalServerError, "Failed to fetch metrics")
+		} else {
+			view := buildIndexView(cfg, data)
+			err := c.Render(http.StatusOK, "index", view)
+			if err != nil {
+				e.Logger.Error(err)
+				return c.String(http.StatusInternalServerError, "Failed to render view")
+			}
+			return nil
+		}
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
@@ -122,8 +133,79 @@ func buildConfigResp(cfg *deer.Config) *configResp {
 	return &r
 }
 
+func buildIndexView(cfg *deer.Config, data []*deer.Metric) *IndexView {
+	monitorNames := map[string]string{}
+	serviceNames := map[string]string{}
+
+	for _, m := range cfg.Monitors {
+		monitorNames[m.ID] = m.Name
+		for _, s := range m.Services {
+			serviceNames[s.ID] = s.Name
+		}
+	}
+
+	view := IndexView{
+		Monitors: make([]*IndexViewMonitor, 0),
+	}
+	pm := ""
+	ps := ""
+	var monitor *IndexViewMonitor
+	var service *IndexViewService
+
+	for _, m := range data {
+		if pm != m.MonitorID {
+			pm = m.MonitorID
+			ps = ""
+			monitor = &IndexViewMonitor{
+				Name:     monitorNames[m.MonitorID],
+				Services: make([]*IndexViewService, 0),
+				Health:   make([]IndexViewHealth, 0),
+			}
+			view.Monitors = append(view.Monitors, monitor)
+		}
+		if m.ServiceID == nil {
+			monitor.Health = append(monitor.Health, IndexViewHealth{
+				Health: m.Health,
+				When:   m.Bucket,
+			})
+		}
+
+		if m.ServiceID != nil {
+			if ps != *m.ServiceID {
+				ps = *m.ServiceID
+				service = &IndexViewService{
+					Name:   serviceNames[*m.ServiceID],
+					Health: make([]IndexViewHealth, 0),
+				}
+				monitor.Services = append(monitor.Services, service)
+			}
+			service.Health = append(service.Health, IndexViewHealth{
+				Health: m.Health,
+				When:   m.Bucket,
+			})
+		}
+	}
+	return &view
+}
+
 type IndexView struct {
-	Monitors []map[string]interface{}
+	Monitors []*IndexViewMonitor
+}
+
+type IndexViewMonitor struct {
+	Name     string
+	Health   []IndexViewHealth
+	Services []*IndexViewService
+}
+
+type IndexViewService struct {
+	Name   string
+	Health []IndexViewHealth
+}
+
+type IndexViewHealth struct {
+	Health float64
+	When   time.Time
 }
 
 type Template struct {
