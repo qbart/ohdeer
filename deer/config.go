@@ -66,3 +66,15 @@ func ParseConfig(path string, src []byte) (*Config, error) {
 
 	return &cfg, err
 }
+
+// ActiveServices returns list of active services per monitor.
+func (c *Config) ActiveServices() map[string][]string {
+	r := make(map[string][]string, 0)
+	for _, m := range c.Monitors {
+		r[m.ID] = make([]string, 0)
+		for _, s := range m.Services {
+			r[m.ID] = append(r[m.ID], s.ID)
+		}
+	}
+	return r
+}

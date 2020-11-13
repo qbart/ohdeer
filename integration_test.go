@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -82,11 +81,14 @@ func TestRunner(t *testing.T) {
 
 			}
 
-			metrics, err := store.Read(context.Background(), deer.ReadFilter{
+			metrics, err := store.Read(context.Background(), &deer.ReadFilter{
 				TimeBucket:     1,
 				TimeBucketUnit: "hour",
 				Interval:       23,
 				IntervalUnit:   "hour",
+				ActiveServices: map[string][]string{
+					"test": []string{"api"},
+				},
 			})
 			if err != nil {
 				t.Errorf("Error fetching data %v", err)
@@ -109,7 +111,6 @@ func TestRunner(t *testing.T) {
 				}
 			}
 
-			fmt.Println("hello")
 			for i := len(metrics) - 1; i >= 1; i-- {
 				prev := metrics[i-1]
 				curr := metrics[i]

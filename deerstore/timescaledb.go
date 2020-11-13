@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohtea/tea"
@@ -84,14 +86,45 @@ func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 	)
 }
 
-func (m *TimescaleDB) Read(ctx context.Context, filter deer.ReadFilter) ([]*deer.Metric, error) {
+func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*deer.Metric, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	bucket := fmt.Sprint(filter.TimeBucket, " ", filter.TimeBucketUnit)
 	interval := fmt.Sprint(filter.Interval, " ", filter.IntervalUnit)
 
-	rows, err := m.db.QueryContext(queryCtx, fmt.Sprintf(metricsSql, bucket, interval))
+	var sb strings.Builder
+	mi := 0
+	for k, v := range filter.ActiveServices {
+		if mi == 0 {
+			sb.WriteString("WHERE ")
+		}
+		sb.WriteString("(monitor_id =")
+		sb.WriteString(pq.QuoteLiteral(k))
+		if len(v) > 0 {
+			sb.WriteString(" AND service_id IN (")
+			for i, s := range v {
+				sb.WriteString(pq.QuoteLiteral(s))
+				if i < len(v)-1 {
+					sb.WriteString(",")
+				}
+			}
+			sb.WriteString(")")
+		}
+		sb.WriteString(")")
+		if mi < len(filter.ActiveServices)-1 {
+			sb.WriteString(" AND ")
+		}
+		mi++
+	}
+	sql := fmt.Sprintf(
+		metricsSql,
+		pq.QuoteLiteral(bucket),
+		pq.QuoteLiteral(interval),
+		sb.String(),
+	)
+
+	rows, err := m.db.QueryContext(queryCtx, sql)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +150,10 @@ const metricsSql string = `
 SELECT
   monitor_id,
   service_id,
-  time_bucket_gapfill('%s', at, now() - INTERVAL '%s', now()) AS bucket,
+  time_bucket_gapfill(%s, at, now() - INTERVAL %s, now()) AS bucket,
   COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health
 FROM metrics
+%s
 GROUP BY monitor_id, service_id, bucket
 ORDER BY monitor_id, service_id, bucket
 `
