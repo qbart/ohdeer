@@ -9,6 +9,20 @@ import (
 func TestParseConfig(t *testing.T) {
 	g := goblin.Goblin(t)
 	g.Describe(".ParseConfig", func() {
+		g.Describe("Tls config", func() {
+			g.It("Reads config", func() {
+				c, _ := ParseConfig("http.hcl", []byte(`
+					tls {
+						domain = "localhost.dev"
+						cache_dir = "/tmp"
+					}
+				`))
+
+				g.Assert(c.Tls.Domain).Equal("localhost.dev")
+				g.Assert(c.Tls.CacheDir).Equal("/tmp")
+			})
+		})
+
 		g.Describe("Valid config", func() {
 			c, err := ParseConfig("http.hcl", []byte(`
 			monitor "aws:eu-west-1" {
@@ -33,6 +47,11 @@ func TestParseConfig(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error when parsing %v", err)
 			}
+
+			g.It("Sets tls config to default", func() {
+				g.Assert(c.Tls.Domain).Equal("")
+				g.Assert(c.Tls.CacheDir).Equal("")
+			})
 
 			g.It("Parses service definition correctly", func() {
 				g.Assert(len(c.Monitors)).Equal(1)

@@ -14,10 +14,13 @@ import (
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohdeer/deerstore"
 	"github.com/qbart/ohtea/tea"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
 	e := echo.New()
+	e.Use(middleware.Recover())
+	// e.Use(middleware.Logger())
 	e.Use(middleware.Secure())
 	e.Logger.SetLevel(log.INFO)
 
@@ -25,6 +28,12 @@ func main() {
 	cfg, err := deer.LoadConfig("./ohdeer.hcl")
 	if err != nil {
 		e.Logger.Fatal(err)
+	}
+	if cfg.Tls.Domain != "" {
+		if cfg.Tls.CacheDir != "" {
+			e.AutoTLSManager.Cache = autocert.DirCache(cfg.Tls.CacheDir)
+		}
+		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.Tls.Domain)
 	}
 
 	e.Logger.Info("Connecting to store")
@@ -80,7 +89,14 @@ func main() {
 	})
 
 	go func() {
-		if err := e.Start(":1820"); err != nil {
+		var err error
+		if cfg.Tls.Domain != "" {
+			err = e.StartAutoTLS(":443")
+		} else {
+			err = e.Start(":1820")
+		}
+
+		if err != nil {
 			e.Logger.Info("Shutting down the server")
 		}
 	}()

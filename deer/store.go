@@ -19,6 +19,9 @@ type Store interface {
 
 	// Read loads all metrics from store.
 	Read(ctx context.Context) ([]*Metric, error)
+
+	// Truncate removes all metrics from store.
+	Truncate(ctx context.Context) error
 }
 
 // Metric represents metric for given time bucket.

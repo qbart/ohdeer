@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -43,15 +44,22 @@ func TestRunner(t *testing.T) {
 				return
 			}
 
-			store, err := deerstore.NewTimescaleDB(context.Background(), os.Getenv("DATABASE_TEST_URL"))
+			store, err := deerstore.NewTimescaleDB(context.Background(), os.Getenv("DATABASE_URL"))
 			if err != nil {
 				t.Errorf("Error openning database %v", err)
 				return
 			}
 			defer store.Close(context.Background())
+
 			err = store.Migrate(context.Background())
 			if err != nil {
 				t.Errorf("Error migrating database %v", err)
+				return
+			}
+
+			err = store.Truncate(context.Background())
+			if err != nil {
+				t.Errorf("Error truncating database %v", err)
 				return
 			}
 
@@ -80,32 +88,30 @@ func TestRunner(t *testing.T) {
 				return
 			}
 
-			if len(metrics) <= 1 {
-				t.Errorf("Not enough metrics %d (<=1)", len(metrics))
+			if len(metrics) != 24 {
+				t.Errorf("Not enough metrics %d (!=24)", len(metrics))
 				return
 			}
 
-			m := metrics[0]
-			g.Assert(m.MonitorID).Eql("test")
-			g.Assert(m.ServiceID).Eql((*string)(nil))
-			g.Assert(m.Health).Eql(float64(0))
-			g.Assert(m.Bucket).Eql(metrics[1].Bucket)
-
-			metrics = metrics[1:]
-
-			for _, m := range metrics {
+			for i := 0; i < len(metrics); i++ {
+				m := metrics[i]
 				g.Assert(m.MonitorID).Eql("test")
-				g.Assert(*m.ServiceID).Eql("api")
-				g.Assert(m.Health).Eql(float64(0))
+				g.Assert(m.ServiceID).Eql("api")
+				if i == len(metrics)-1 {
+					g.Assert(m.Health).Eql(float64(0))
+				} else {
+					g.Assert(m.Health).Eql(float64(-1))
+				}
 			}
 
-			// for i := len(metrics) - 1; i >= 1; i-- {
-			// 	prev := metrics[i-1]
-			// 	curr := metrics[i]
+			fmt.Println("hello")
+			for i := len(metrics) - 1; i >= 1; i-- {
+				prev := metrics[i-1]
+				curr := metrics[i]
 
-			// 	d := curr.Bucket.Sub(prev.Bucket)
-			// 	fmt.Println("dur", d)
-			// }
+				d := curr.Bucket.Sub(prev.Bucket)
+				g.Assert(d.Hours()).Eql(1.0)
+			}
 		})
 	})
 }

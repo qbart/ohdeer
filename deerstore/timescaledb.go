@@ -59,6 +59,11 @@ func (m *TimescaleDB) Migrate(ctx context.Context) error {
 	return nil
 }
 
+func (m *TimescaleDB) Truncate(ctx context.Context) error {
+	_, err := m.db.Query("DELETE FROM metrics")
+	return err
+}
+
 func (m *TimescaleDB) Close(ctx context.Context) {
 	if m.inserter != nil {
 		m.inserter.Close()
@@ -111,8 +116,8 @@ SELECT
   monitor_id,
   service_id,
   time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
-  coalesce(count(*) filter (where success is true) / count(*)::numeric, -1) as health
+  COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health
 FROM metrics
 GROUP BY monitor_id, service_id, bucket
-ORDER BY monitor_id, service_id NULLS FIRST, bucket
+ORDER BY monitor_id, service_id, bucket
 `

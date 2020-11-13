@@ -9,7 +9,13 @@ import (
 
 // Config keeps monitor configuration.
 type Config struct {
+	Tls      *Tls       `hcl:"tls,block"`
 	Monitors []*Monitor `hcl:"monitor,block"`
+}
+
+type Tls struct {
+	Domain   string `hcl:"domain"`
+	CacheDir string `hcl:"cache_dir"`
 }
 
 // LoadConfig loads and parses config from given path.
@@ -28,6 +34,9 @@ func ParseConfig(path string, src []byte) (*Config, error) {
 	err := hclsimple.Decode(path, src, nil, &cfg)
 
 	if err == nil {
+		if cfg.Tls == nil {
+			cfg.Tls = &Tls{}
+		}
 		for _, m := range cfg.Monitors {
 			if len(m.ID) == 0 {
 				return nil, fmt.Errorf("Monitor cannot have empty ID")
