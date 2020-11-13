@@ -107,26 +107,12 @@ func (m *TimescaleDB) Read(ctx context.Context) ([]*deer.Metric, error) {
 }
 
 const metricsSql string = `
-WITH series_by_service AS (
 SELECT
   monitor_id,
   service_id,
   time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
-  count(*) filter (where success is true) as healthy_total,
-  count(*) as total
+  coalesce(count(*) filter (where success is true) / count(*)::numeric, -1) as health
 FROM metrics
 GROUP BY monitor_id, service_id, bucket
-), series_by_monitor AS (
-SELECT
-  monitor_id,
-  time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
-  count(*) filter (where success is true) as healthy_total,
-  count(*) as total
-FROM metrics
-GROUP BY monitor_id, bucket
-)
-  SELECT monitor_id, NULL::varchar AS service_id, bucket, COALESCE((healthy_total::numeric / total), -1) AS health FROM series_by_monitor
-UNION ALL
-  SELECT monitor_id, service_id, bucket, COALESCE((healthy_total::numeric / total), -1)  FROM series_by_service
 ORDER BY monitor_id, service_id NULLS FIRST, bucket
 `

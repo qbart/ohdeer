@@ -155,35 +155,26 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *IndexView {
 	for _, m := range data {
 		if pm != m.MonitorID {
 			pm = m.MonitorID
-			ps = ""
+			ps = "" // reset servicej
 			monitor = &IndexViewMonitor{
 				Name:     monitorNames[m.MonitorID],
 				Services: make([]*IndexViewService, 0),
-				Health:   make([]IndexViewHealth, 0),
 			}
 			view.Monitors = append(view.Monitors, monitor)
 		}
-		if m.ServiceID == nil {
-			monitor.Health = append(monitor.Health, IndexViewHealth{
-				Health: m.Health,
-				When:   m.Bucket,
-			})
-		}
 
-		if m.ServiceID != nil {
-			if ps != *m.ServiceID {
-				ps = *m.ServiceID
-				service = &IndexViewService{
-					Name:   serviceNames[*m.ServiceID],
-					Health: make([]IndexViewHealth, 0),
-				}
-				monitor.Services = append(monitor.Services, service)
+		if ps != m.ServiceID {
+			ps = m.ServiceID
+			service = &IndexViewService{
+				Name:   serviceNames[m.ServiceID],
+				Health: make([]IndexViewHealth, 0),
 			}
-			service.Health = append(service.Health, IndexViewHealth{
-				Health: m.Health,
-				When:   m.Bucket,
-			})
+			monitor.Services = append(monitor.Services, service)
 		}
+		service.Health = append(service.Health, IndexViewHealth{
+			Health: m.Health,
+			When:   m.Bucket,
+		})
 	}
 	return &view
 }
@@ -194,7 +185,6 @@ type IndexView struct {
 
 type IndexViewMonitor struct {
 	Name     string
-	Health   []IndexViewHealth
 	Services []*IndexViewService
 }
 

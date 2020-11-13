@@ -14,34 +14,23 @@
             {{range .Monitors}}
             <div class="row">
                 <div class="col">
-                    <div class="shadow p-3 mb-5 bg-white rounded">
-                        <h4>{{.Name}}</h4>
-                        {{range .Health}}
-                            {{ if eq .Health 1.0 }}
-                            <span class="badge badge-success" title="{{.When}} {{.Health}}">&nbsp;</span>
-                            {{ else if eq .Health -1.0 }}
-                            <span class="badge badge-secondary" title="{{.When}} {{.Health}}">&nbsp;</span>
-                            {{ else }}
-                            <span class="badge badge-danger" title="{{.When}} {{.Health}}">&nbsp;</span>
-                            {{end}}
-                        {{end}}
-                        <ul class="list-group">
-                            {{range .Services}}
-                                <li class="list-group-item">
-                                    <strong>{{.Name}}</strong><br>
-                                    {{range .Health}}
-                                        {{ if eq .Health 1.0 }}
-                                        <span class="badge badge-success" title="{{.When}} {{.Health}}">&nbsp;</span>
-                                        {{ else if eq .Health -1.0 }}
-                                        <span class="badge badge-secondary" title="{{.When}} {{.Health}}">&nbsp;</span>
-                                        {{ else }}
-                                        <span class="badge badge-danger" title="{{.When}} {{.Health}}">&nbsp;</span>
-                                        {{end}}
+                    <h4>{{.Name}}</h4>
+                    <ul class="list-group">
+                        {{range .Services}}
+                            <li class="list-group-item">
+                                <strong>{{.Name}}</strong><br>
+                                {{range .Health}}
+                                    {{ if eq .Health 1.0 }}
+                                    <span class="badge badge-success" title="{{.When}} [Healthy]">&nbsp;</span>
+                                    {{ else if eq .Health -1.0 }}
+                                    <span class="badge badge-secondary" title="{{.When}} [No data]">&nbsp;</span>
+                                    {{ else }}
+                                    <span class="badge badge-danger" data-health="{{.Health}}" title="{{.When}} [{{.Health}}]">&nbsp;</span>
                                     {{end}}
-                                </li>
-                            {{end}}
-                        </ul>
-                    </div>
+                                {{end}}
+                            </li>
+                        {{end}}
+                    </ul>
                 </div>
             </div>
             {{end}}
