@@ -18,20 +18,26 @@ const IndexTpl = `
             {{range .Monitors}}
             <div class="row">
                 <div class="col">
-                    <h4>{{.Name}}</h4>
+					<p>
+					    <strong>{{.Name}}</strong>
+					</p>
                     <ul class="list-group">
                         {{range .Services}}
                             <li class="list-group-item">
-                                <strong>{{.Name}}</strong><br>
+                                <strong>{{.Name}}</strong>
+								<p class="text-center">
                                 {{range .Health}}
                                     {{ if eq .Health 1.0 }}
-                                    <span class="badge badge-success" title="{{.When}} [Healthy]">&nbsp;</span>
+									<button type="button" class="clickable btn btn-success" data-when="{{.When}}">&nbsp;</button>
                                     {{ else if eq .Health -1.0 }}
-                                    <span class="badge badge-secondary" title="{{.When}} [No data]">&nbsp;</span>
+									<button type="button" class="btn btn-secondary" data-when="{{.When}}">&nbsp;</button>
                                     {{ else }}
-                                    <span class="badge badge-danger" data-health="{{.Health}}" title="{{.When}} [{{.Health}}]">&nbsp;</span>
+									<button type="button" class="clickable btn btn-danger" data-when="{{.When}}" data-health="{{.Health}}">&nbsp;</button>
                                     {{end}}
                                 {{end}}
+								</p>
+								<div class="charts text-center">
+								</div>
                             </li>
                         {{end}}
                     </ul>
@@ -40,7 +46,29 @@ const IndexTpl = `
             {{end}}
         </div>
 
+		<div class="spinner-tpl d-none">
+			<div class="spinner-border" role="status">
+			  <span class="sr-only">Loading...</span>
+			</div>
+		</div>
+
+		<script
+			  src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+			  integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
+			  crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
+
+		<script>
+$(function() {
+	const spinner = $(".spinner-tpl").html();
+
+	$("button.clickable").on("click", function() {
+		const charts = $(this).closest(".list-group-item").find(".charts:first");
+		console.log(charts);
+		charts.html(spinner);
+	});
+});
+		</script>
     </body>
 </html>
 {{end}}
