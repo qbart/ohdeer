@@ -18,10 +18,17 @@ type Store interface {
 	Save(ctx context.Context, result *CheckResult)
 
 	// Read loads all metrics from store.
-	Read(ctx context.Context) ([]*Metric, error)
+	Read(ctx context.Context, filter ReadFilter) ([]*Metric, error)
 
 	// Truncate removes all metrics from store.
 	Truncate(ctx context.Context) error
+}
+
+type ReadFilter struct {
+	TimeBucket     uint
+	TimeBucketUnit string
+	Interval       uint
+	IntervalUnit   string
 }
 
 // Metric represents metric for given time bucket.

@@ -53,7 +53,12 @@ func main() {
 	}
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
-		data, err := store.Read(context.Background())
+		data, err := store.Read(context.Background(), deer.ReadFilter{
+			TimeBucket:     1,
+			TimeBucketUnit: "hour",
+			Interval:       23,
+			IntervalUnit:   "hour",
+		})
 		if err != nil {
 			e.Logger.Error(err)
 			return c.String(http.StatusInternalServerError, "Failed to fetch metrics")
@@ -71,7 +76,12 @@ func main() {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
 	})
 	e.GET("/api/v1/metrics", func(c echo.Context) error {
-		rows, err := store.Read(context.Background())
+		rows, err := store.Read(context.Background(), deer.ReadFilter{
+			TimeBucket:     1,
+			TimeBucketUnit: "hour",
+			Interval:       23,
+			IntervalUnit:   "hour",
+		})
 		if err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}

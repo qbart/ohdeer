@@ -82,7 +82,12 @@ func TestRunner(t *testing.T) {
 
 			}
 
-			metrics, err := store.Read(context.Background())
+			metrics, err := store.Read(context.Background(), deer.ReadFilter{
+				TimeBucket:     1,
+				TimeBucketUnit: "hour",
+				Interval:       23,
+				IntervalUnit:   "hour",
+			})
 			if err != nil {
 				t.Errorf("Error fetching data %v", err)
 				return

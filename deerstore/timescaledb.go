@@ -84,12 +84,14 @@ func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 	)
 }
 
-func (m *TimescaleDB) Read(ctx context.Context) ([]*deer.Metric, error) {
+func (m *TimescaleDB) Read(ctx context.Context, filter deer.ReadFilter) ([]*deer.Metric, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	//TODO only fetch active monitors
 
-	rows, err := m.db.QueryContext(queryCtx, metricsSql)
+	bucket := fmt.Sprint(filter.TimeBucket, " ", filter.TimeBucketUnit)
+	interval := fmt.Sprint(filter.Interval, " ", filter.IntervalUnit)
+
+	rows, err := m.db.QueryContext(queryCtx, fmt.Sprintf(metricsSql, bucket, interval))
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +117,7 @@ const metricsSql string = `
 SELECT
   monitor_id,
   service_id,
-  time_bucket_gapfill('1 hour', at, now() - INTERVAL '23 hours', now()) AS bucket,
+  time_bucket_gapfill('%s', at, now() - INTERVAL '%s', now()) AS bucket,
   COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health
 FROM metrics
 GROUP BY monitor_id, service_id, bucket
