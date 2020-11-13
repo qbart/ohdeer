@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// HttpCheck defines http type check.
-type HttpCheck struct {
+// HTTPCheck defines http type check.
+type HTTPCheck struct {
 	ref
 
 	// body
@@ -18,7 +18,7 @@ type HttpCheck struct {
 }
 
 // Validate ensures correct values are set for http check.
-func (h *HttpCheck) Validate() error {
+func (h *HTTPCheck) Validate() error {
 	switch {
 	case h.TimeoutSec <= 0:
 		return fmt.Errorf("Timeout must be > 0")
@@ -43,7 +43,7 @@ func (h *HttpCheck) Validate() error {
 }
 
 // RunFn returns task function to run check.
-func (h *HttpCheck) RunFn(s Store) func() {
+func (h *HTTPCheck) RunFn(s Store) func() {
 	store := s
 
 	return func() {
@@ -64,7 +64,7 @@ func (h *HttpCheck) RunFn(s Store) func() {
 }
 
 // Check verifies if check is valid or not.
-func (h *HttpCheck) Check(resp *Response) bool {
+func (h *HTTPCheck) Check(resp *Response) bool {
 	if resp.Err != nil {
 		return false
 	}

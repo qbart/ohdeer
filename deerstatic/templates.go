@@ -1,5 +1,6 @@
 package deerstatic
 
+// IndexTpl is a root page.
 const IndexTpl = `
 {{define "index"}}
 <!doctype html>

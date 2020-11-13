@@ -9,11 +9,12 @@ import (
 
 // Config keeps monitor configuration.
 type Config struct {
-	Tls      *Tls       `hcl:"tls,block"`
+	TLS      *TLS       `hcl:"tls,block"`
 	Monitors []*Monitor `hcl:"monitor,block"`
 }
 
-type Tls struct {
+// TLS configuration.
+type TLS struct {
 	Domain   string `hcl:"domain"`
 	CacheDir string `hcl:"cache_dir"`
 }
@@ -34,8 +35,8 @@ func ParseConfig(path string, src []byte) (*Config, error) {
 	err := hclsimple.Decode(path, src, nil, &cfg)
 
 	if err == nil {
-		if cfg.Tls == nil {
-			cfg.Tls = &Tls{}
+		if cfg.TLS == nil {
+			cfg.TLS = &TLS{}
 		}
 		for _, m := range cfg.Monitors {
 			if len(m.ID) == 0 {
@@ -53,7 +54,7 @@ func ParseConfig(path string, src []byte) (*Config, error) {
 					return nil, fmt.Errorf("Service in monitor %s cannot have empty name", m.ID)
 				}
 
-				for _, h := range s.HttpChecks {
+				for _, h := range s.HTTPChecks {
 					h.ref = ref{Monitor: m, Service: s}
 
 					if err := h.Validate(); err != nil {

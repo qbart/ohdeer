@@ -24,6 +24,7 @@ type Store interface {
 	Truncate(ctx context.Context) error
 }
 
+// ReadFilter contains params to configure metrics read.
 type ReadFilter struct {
 	TimeBucket     uint
 	TimeBucketUnit string

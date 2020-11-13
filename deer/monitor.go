@@ -1,5 +1,6 @@
 package deer
 
+// Validatable interface.
 type Validatable interface {
 	Validate() error
 }
@@ -22,7 +23,7 @@ type Service struct {
 
 	// body
 	Name       string       `hcl:"name"`
-	HttpChecks []*HttpCheck `hcl:"http,block"`
+	HTTPChecks []*HTTPCheck `hcl:"http,block"`
 }
 
 type ref struct {

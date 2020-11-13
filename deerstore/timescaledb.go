@@ -8,20 +8,22 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // postgres adapter
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohtea/tea"
 )
 
+// TimescaleDB store impl.
 type TimescaleDB struct {
 	db       *sql.DB
 	inserter *sql.Stmt
 }
 
-func NewTimescaleDB(ctx context.Context, connUri string) (*TimescaleDB, error) {
-	db, err := sql.Open("postgres", connUri)
+// NewTimescaleDB creates new timescale db store.
+func NewTimescaleDB(ctx context.Context, connURI string) (*TimescaleDB, error) {
+	db, err := sql.Open("postgres", connURI)
 	if err != nil {
-		return nil, fmt.Errorf("DB error: %v\n", err)
+		return nil, fmt.Errorf("DB error: %v", err)
 	}
 	if err != nil {
 		db.Close()
@@ -33,6 +35,7 @@ func NewTimescaleDB(ctx context.Context, connUri string) (*TimescaleDB, error) {
 	}, nil
 }
 
+// Migrate creates metrics table and initialize prepared statements.
 func (m *TimescaleDB) Migrate(ctx context.Context) error {
 	sql := `
 	CREATE TABLE IF NOT EXISTS metrics(
@@ -61,11 +64,13 @@ func (m *TimescaleDB) Migrate(ctx context.Context) error {
 	return nil
 }
 
+// Truncate purges data from metrics table.
 func (m *TimescaleDB) Truncate(ctx context.Context) error {
 	_, err := m.db.Query("DELETE FROM metrics")
 	return err
 }
 
+// Close closes connection to pg.
 func (m *TimescaleDB) Close(ctx context.Context) {
 	if m.inserter != nil {
 		m.inserter.Close()
@@ -73,6 +78,7 @@ func (m *TimescaleDB) Close(ctx context.Context) {
 	m.db.Close()
 }
 
+// Save inserts metrics to database.
 func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 	var d deer.Details
 	d.Trace = result.Trace
@@ -86,6 +92,7 @@ func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 	)
 }
 
+// Read fetches metrics from database based on filter.
 func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*deer.Metric, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -118,7 +125,7 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 		mi++
 	}
 	sql := fmt.Sprintf(
-		metricsSql,
+		metricsSQL,
 		pq.QuoteLiteral(bucket),
 		pq.QuoteLiteral(interval),
 		sb.String(),
@@ -146,7 +153,7 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 	return res, nil
 }
 
-const metricsSql string = `
+const metricsSQL string = `
 SELECT
   monitor_id,
   service_id,

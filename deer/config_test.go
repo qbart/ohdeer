@@ -9,7 +9,7 @@ import (
 func TestParseConfig(t *testing.T) {
 	g := goblin.Goblin(t)
 	g.Describe(".ParseConfig", func() {
-		g.Describe("Tls config", func() {
+		g.Describe("TLS config", func() {
 			g.It("Reads config", func() {
 				c, _ := ParseConfig("http.hcl", []byte(`
 					tls {
@@ -18,8 +18,8 @@ func TestParseConfig(t *testing.T) {
 					}
 				`))
 
-				g.Assert(c.Tls.Domain).Equal("localhost.dev")
-				g.Assert(c.Tls.CacheDir).Equal("/tmp")
+				g.Assert(c.TLS.Domain).Equal("localhost.dev")
+				g.Assert(c.TLS.CacheDir).Equal("/tmp")
 			})
 		})
 
@@ -49,14 +49,14 @@ func TestParseConfig(t *testing.T) {
 			}
 
 			g.It("Sets tls config to default", func() {
-				g.Assert(c.Tls.Domain).Equal("")
-				g.Assert(c.Tls.CacheDir).Equal("")
+				g.Assert(c.TLS.Domain).Equal("")
+				g.Assert(c.TLS.CacheDir).Equal("")
 			})
 
 			g.It("Parses service definition correctly", func() {
 				g.Assert(len(c.Monitors)).Equal(1)
 				g.Assert(len(c.Monitors[0].Services)).Equal(1)
-				g.Assert(len(c.Monitors[0].Services[0].HttpChecks)).Equal(1)
+				g.Assert(len(c.Monitors[0].Services[0].HTTPChecks)).Equal(1)
 
 				g.Assert(c.Monitors[0].ID).Equal("aws:eu-west-1")
 				g.Assert(c.Monitors[0].Name).Equal("AWS Europe")
@@ -64,7 +64,7 @@ func TestParseConfig(t *testing.T) {
 				g.Assert(c.Monitors[0].Services[0].ID).Equal("core-api")
 				g.Assert(c.Monitors[0].Services[0].Name).Equal("Core API")
 
-				http := c.Monitors[0].Services[0].HttpChecks[0]
+				http := c.Monitors[0].Services[0].HTTPChecks[0]
 				g.Assert(http.Addr).Equal("http://a.local")
 				g.Assert(http.TimeoutSec).Equal(uint64(10))
 				g.Assert(http.IntervalSec).Equal(uint64(100))
@@ -73,7 +73,7 @@ func TestParseConfig(t *testing.T) {
 
 			g.Describe("Inclusion", func() {
 				g.It("Parses http check", func() {
-					expect := c.Monitors[0].Services[0].HttpChecks[0].Expectations[0]
+					expect := c.Monitors[0].Services[0].HTTPChecks[0].Expectations[0]
 
 					g.Assert(expect.Subject).Equal("status")
 					g.Assert(expect.Inclusion).Equal([]int{200})

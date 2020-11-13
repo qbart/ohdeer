@@ -25,7 +25,7 @@ func NewRunner(cfg *Config, store Store) *Runner {
 func (r *Runner) Start(ctx context.Context) {
 	for _, m := range r.cfg.Monitors {
 		for _, s := range m.Services {
-			for _, h := range s.HttpChecks {
+			for _, h := range s.HTTPChecks {
 				gocron.Every(h.IntervalSec).Seconds().Do(h.RunFn(r.store))
 			}
 		}

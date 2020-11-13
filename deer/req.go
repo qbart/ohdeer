@@ -13,13 +13,17 @@ import (
 	"time"
 )
 
+// Request is a http request with tracing.
 type Request struct{}
+
+// Response contains the result of the request check.
 type Response struct {
 	Err   error
 	Resp  *http.Response
 	Trace Trace
 }
 
+// Trace contains details about the request duration.
 type Trace struct {
 	DNSLookup        time.Duration `json:"dns_lookup"`
 	TCPConnection    time.Duration `json:"tcp_connection"`
@@ -30,18 +34,19 @@ type Trace struct {
 }
 
 const (
-	tDnsStart = iota
-	tDnsDone
+	tDNSStart = iota
+	tDNSDone
 	tConnectStart
 	tConnectDone
 	tGotConn
 	tGotFirstByte
-	tTlsStart
-	tTlsDone
+	tTLSStart
+	tTLSDone
 	tReqStart
 	tReqDone
 )
 
+// Get executes GET request.
 func (*Request) Get(address string, timeout time.Duration) *Response {
 	var (
 		resp  Response
@@ -64,10 +69,10 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 	//
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dnsStartInfo httptrace.DNSStartInfo) {
-			times[tDnsStart] = time.Now()
+			times[tDNSStart] = time.Now()
 		},
 		DNSDone: func(dnsDoneInfo httptrace.DNSDoneInfo) {
-			times[tDnsDone] = time.Now()
+			times[tDNSDone] = time.Now()
 		},
 		ConnectStart: func(network, addr string) {
 			times[tConnectStart] = time.Now()
@@ -85,13 +90,13 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 			times[tGotFirstByte] = time.Now()
 		},
 		TLSHandshakeStart: func() {
-			times[tTlsStart] = time.Now()
+			times[tTLSStart] = time.Now()
 		},
 		TLSHandshakeDone: func(_ tls.ConnectionState, err error) {
 			if err != nil {
 				//TODO
 			}
-			times[tTlsDone] = time.Now()
+			times[tTLSDone] = time.Now()
 		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
@@ -128,14 +133,14 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 	}
 
 	times[tReqDone] = time.Now()
-	times[tReqStart] = times[tDnsStart]
+	times[tReqStart] = times[tDNSStart]
 	if times[tReqStart].IsZero() {
 		times[tReqStart] = times[tConnectStart]
 	}
 
-	resp.Trace.DNSLookup = times[tDnsDone].Sub(times[tDnsStart])
+	resp.Trace.DNSLookup = times[tDNSDone].Sub(times[tDNSStart])
 	resp.Trace.TCPConnection = times[tConnectDone].Sub(times[tConnectStart])
-	resp.Trace.TLSHandshake = times[tTlsDone].Sub(times[tTlsStart])
+	resp.Trace.TLSHandshake = times[tTLSDone].Sub(times[tTLSStart])
 	resp.Trace.ServerProcessing = times[tGotFirstByte].Sub(times[tGotConn])
 	resp.Trace.ContentTransfer = times[tReqDone].Sub(times[tGotFirstByte])
 	resp.Trace.Total = times[tReqDone].Sub(times[tReqStart])

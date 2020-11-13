@@ -30,11 +30,11 @@ func main() {
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
-	if cfg.Tls.Domain != "" {
-		if cfg.Tls.CacheDir != "" {
-			e.AutoTLSManager.Cache = autocert.DirCache(cfg.Tls.CacheDir)
+	if cfg.TLS.Domain != "" {
+		if cfg.TLS.CacheDir != "" {
+			e.AutoTLSManager.Cache = autocert.DirCache(cfg.TLS.CacheDir)
 		}
-		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.Tls.Domain)
+		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.TLS.Domain)
 	}
 
 	e.Logger.Info("Connecting to store")
@@ -48,7 +48,7 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 
-	e.Renderer = &Template{
+	e.Renderer = &myTemplate{
 		templates: template.Must(template.New("index").Parse(deerstatic.IndexTpl)),
 	}
 	e.Logger.Info("Starting server")
@@ -63,15 +63,15 @@ func main() {
 		if err != nil {
 			e.Logger.Error(err)
 			return c.String(http.StatusInternalServerError, "Failed to fetch metrics")
-		} else {
-			view := buildIndexView(cfg, data)
-			err := c.Render(http.StatusOK, "index", view)
-			if err != nil {
-				e.Logger.Error(err)
-				return c.String(http.StatusInternalServerError, "Failed to render view")
-			}
-			return nil
 		}
+
+		view := buildIndexView(cfg, data)
+		err = c.Render(http.StatusOK, "index", view)
+		if err != nil {
+			e.Logger.Error(err)
+			return c.String(http.StatusInternalServerError, "Failed to render view")
+		}
+		return nil
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
@@ -93,7 +93,7 @@ func main() {
 
 	go func() {
 		var err error
-		if cfg.Tls.Domain != "" {
+		if cfg.TLS.Domain != "" {
 			err = e.StartAutoTLS(":443")
 		} else {
 			err = e.Start(":1820")
@@ -152,7 +152,7 @@ func buildConfigResp(cfg *deer.Config) *configResp {
 	return &r
 }
 
-func buildIndexView(cfg *deer.Config, data []*deer.Metric) *IndexView {
+func buildIndexView(cfg *deer.Config, data []*deer.Metric) *indexView {
 	monitorNames := map[string]string{}
 	serviceNames := map[string]string{}
 
@@ -163,34 +163,34 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *IndexView {
 		}
 	}
 
-	view := IndexView{
-		Monitors: make([]*IndexViewMonitor, 0),
+	view := indexView{
+		Monitors: make([]*indexViewMonitor, 0),
 	}
 	pm := ""
 	ps := ""
-	var monitor *IndexViewMonitor
-	var service *IndexViewService
+	var monitor *indexViewMonitor
+	var service *indexViewService
 
 	for _, m := range data {
 		if pm != m.MonitorID {
 			pm = m.MonitorID
 			ps = "" // reset servicej
-			monitor = &IndexViewMonitor{
+			monitor = &indexViewMonitor{
 				Name:     monitorNames[m.MonitorID],
-				Services: make([]*IndexViewService, 0),
+				Services: make([]*indexViewService, 0),
 			}
 			view.Monitors = append(view.Monitors, monitor)
 		}
 
 		if ps != m.ServiceID {
 			ps = m.ServiceID
-			service = &IndexViewService{
+			service = &indexViewService{
 				Name:   serviceNames[m.ServiceID],
-				Health: make([]IndexViewHealth, 0),
+				Health: make([]indexViewHealth, 0),
 			}
 			monitor.Services = append(monitor.Services, service)
 		}
-		service.Health = append(service.Health, IndexViewHealth{
+		service.Health = append(service.Health, indexViewHealth{
 			Health: m.Health,
 			When:   m.Bucket,
 		})
@@ -198,29 +198,29 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *IndexView {
 	return &view
 }
 
-type IndexView struct {
-	Monitors []*IndexViewMonitor
+type indexView struct {
+	Monitors []*indexViewMonitor
 }
 
-type IndexViewMonitor struct {
+type indexViewMonitor struct {
 	Name     string
-	Services []*IndexViewService
+	Services []*indexViewService
 }
 
-type IndexViewService struct {
+type indexViewService struct {
 	Name   string
-	Health []IndexViewHealth
+	Health []indexViewHealth
 }
 
-type IndexViewHealth struct {
+type indexViewHealth struct {
 	Health float64
 	When   time.Time
 }
 
-type Template struct {
+type myTemplate struct {
 	templates *template.Template
 }
 
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (t *myTemplate) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
