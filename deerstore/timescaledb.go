@@ -144,6 +144,8 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 			&metric.ServiceID,
 			&metric.Bucket,
 			&metric.Health,
+			&metric.PassedChecks,
+			&metric.FailedChecks,
 		); err != nil {
 			return nil, err
 		}
@@ -158,7 +160,9 @@ SELECT
   monitor_id,
   service_id,
   time_bucket_gapfill(%s, at, now() - INTERVAL %s, now()) AS bucket,
-  COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health
+  COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health,
+  COALESCE(count(*) FILTER (WHERE success IS true), 0) AS passed_checks,
+  COALESCE(count(*) FILTER (WHERE success IS false), 0) AS failed_checks
 FROM metrics
 %s
 GROUP BY monitor_id, service_id, bucket

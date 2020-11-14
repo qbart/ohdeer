@@ -77,13 +77,23 @@ func main() {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
 	})
 	e.GET("/api/v1/metrics", func(c echo.Context) error {
+		active := map[string][]string{}
+		active[c.QueryParam("monitor")] = []string{c.QueryParam("service")}
+		since, err := time.Parse(time.RFC3339, c.QueryParam("since"))
+
+		// if err != nil {
+		// 	return c.String(http.StatusUnprocessableEntity, err.Error())
+		// }
+
 		rows, err := store.Read(context.Background(), &deer.ReadFilter{
+			Since:          since,
 			TimeBucket:     1,
 			TimeBucketUnit: "hour",
 			Interval:       23,
 			IntervalUnit:   "hour",
-			ActiveServices: cfg.ActiveServices(),
+			ActiveServices: active,
 		})
+
 		if err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
@@ -174,7 +184,7 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *indexView {
 	for _, m := range data {
 		if pm != m.MonitorID {
 			pm = m.MonitorID
-			ps = "" // reset servicej
+			ps = "" // reset service
 			monitor = &indexViewMonitor{
 				Name:     monitorNames[m.MonitorID],
 				Services: make([]*indexViewService, 0),
@@ -185,8 +195,10 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *indexView {
 		if ps != m.ServiceID {
 			ps = m.ServiceID
 			service = &indexViewService{
-				Name:   serviceNames[m.ServiceID],
-				Health: make([]indexViewHealth, 0),
+				MonitorID: m.MonitorID,
+				ID:        m.ServiceID,
+				Name:      serviceNames[m.ServiceID],
+				Health:    make([]indexViewHealth, 0),
 			}
 			monitor.Services = append(monitor.Services, service)
 		}
@@ -208,8 +220,10 @@ type indexViewMonitor struct {
 }
 
 type indexViewService struct {
-	Name   string
-	Health []indexViewHealth
+	MonitorID string
+	ID        string
+	Name      string
+	Health    []indexViewHealth
 }
 
 type indexViewHealth struct {

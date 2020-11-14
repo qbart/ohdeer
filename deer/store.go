@@ -26,6 +26,7 @@ type Store interface {
 
 // ReadFilter contains params to configure metrics read.
 type ReadFilter struct {
+	Since          time.Time
 	TimeBucket     uint
 	TimeBucketUnit string
 	Interval       uint
@@ -35,9 +36,11 @@ type ReadFilter struct {
 
 // Metric represents metric for given time bucket.
 type Metric struct {
-	MonitorID string    `json:"monitor_id"`
-	ServiceID string    `json:"service_id"`
-	Bucket    time.Time `json:"bucket"`
-	Health    float64   `json:"health"`
-	Details   Details   `json:"details"`
+	MonitorID    string    `json:"monitor_id"`
+	ServiceID    string    `json:"service_id"`
+	Bucket       time.Time `json:"bucket"`
+	Health       float64   `json:"health"`
+	Details      Details   `json:"details"`
+	PassedChecks uint64    `json:"passed_checks"`
+	FailedChecks uint64    `json:"failed_checks"`
 }
