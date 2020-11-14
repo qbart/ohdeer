@@ -97,15 +97,14 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	intervalStart := filter.Since
+	intervalStop := filter.Until()
+
 	bucket := fmt.Sprint(filter.TimeBucket, " ", filter.TimeBucketUnit)
-	interval := fmt.Sprint(filter.Interval, " ", filter.IntervalUnit)
 
 	var sb strings.Builder
 	mi := 0
 	for k, v := range filter.ActiveServices {
-		if mi == 0 {
-			sb.WriteString("WHERE ")
-		}
 		sb.WriteString("(monitor_id =")
 		sb.WriteString(pq.QuoteLiteral(k))
 		if len(v) > 0 {
@@ -124,10 +123,14 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 		}
 		mi++
 	}
+	if sb.Len() == 0 {
+		sb.WriteString("1=1")
+	}
 	sql := fmt.Sprintf(
 		metricsSQL,
 		pq.QuoteLiteral(bucket),
-		pq.QuoteLiteral(interval),
+		pq.QuoteLiteral(intervalStart.Format(time.RFC3339)),
+		pq.QuoteLiteral(intervalStop.Format(time.RFC3339)),
 		sb.String(),
 	)
 
@@ -159,11 +162,12 @@ const metricsSQL string = `
 SELECT
   monitor_id,
   service_id,
-  time_bucket_gapfill(%s, at, now() - INTERVAL %s, now()) AS bucket,
+  time_bucket_gapfill(%s, at) AS bucket,
   COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health,
   COALESCE(count(*) FILTER (WHERE success IS true), 0) AS passed_checks,
   COALESCE(count(*) FILTER (WHERE success IS false), 0) AS failed_checks
 FROM metrics
+WHERE (at BETWEEN %s AND %s) AND
 %s
 GROUP BY monitor_id, service_id, bucket
 ORDER BY monitor_id, service_id, bucket

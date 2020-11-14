@@ -44,3 +44,20 @@ type Metric struct {
 	PassedChecks uint64    `json:"passed_checks"`
 	FailedChecks uint64    `json:"failed_checks"`
 }
+
+// Until calculates when interval should stop.
+func (f *ReadFilter) Until() time.Time {
+	return f.Since.Add(f.IntervalToDuration())
+}
+
+// IntervalToDuration converts user defined interval to time.Duration.
+func (f *ReadFilter) IntervalToDuration() time.Duration {
+	dur := time.Duration(f.Interval)
+
+	switch f.IntervalUnit {
+	case "hour":
+		return dur * time.Hour
+	}
+
+	return time.Duration(0)
+}

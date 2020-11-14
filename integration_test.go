@@ -82,6 +82,7 @@ func TestRunner(t *testing.T) {
 			}
 
 			metrics, err := store.Read(context.Background(), &deer.ReadFilter{
+				Since:          time.Now().Add(-time.Duration(23) * time.Hour),
 				TimeBucket:     1,
 				TimeBucketUnit: "hour",
 				Interval:       23,

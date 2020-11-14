@@ -54,6 +54,7 @@ func main() {
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
 		data, err := store.Read(context.Background(), &deer.ReadFilter{
+			Since:          time.Now().Add(-time.Duration(23) * time.Hour),
 			TimeBucket:     1,
 			TimeBucketUnit: "hour",
 			Interval:       23,
@@ -81,15 +82,15 @@ func main() {
 		active[c.QueryParam("monitor")] = []string{c.QueryParam("service")}
 		since, err := time.Parse(time.RFC3339, c.QueryParam("since"))
 
-		// if err != nil {
-		// 	return c.String(http.StatusUnprocessableEntity, err.Error())
-		// }
+		if err != nil {
+			return c.String(http.StatusUnprocessableEntity, err.Error())
+		}
 
 		rows, err := store.Read(context.Background(), &deer.ReadFilter{
 			Since:          since,
 			TimeBucket:     1,
-			TimeBucketUnit: "hour",
-			Interval:       23,
+			TimeBucketUnit: "minute",
+			Interval:       1,
 			IntervalUnit:   "hour",
 			ActiveServices: active,
 		})
@@ -204,7 +205,7 @@ func buildIndexView(cfg *deer.Config, data []*deer.Metric) *indexView {
 		}
 		service.Health = append(service.Health, indexViewHealth{
 			Health: m.Health,
-			When:   m.Bucket,
+			When:   m.Bucket.Format(time.RFC3339),
 		})
 	}
 	return &view
@@ -228,7 +229,7 @@ type indexViewService struct {
 
 type indexViewHealth struct {
 	Health float64
-	When   time.Time
+	When   string
 }
 
 type myTemplate struct {
