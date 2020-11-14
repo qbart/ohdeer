@@ -8,6 +8,11 @@
 ## Example config
 
 ```hcl
+tls {
+    domain    = "your-production-domain-for-autocert"
+    cache_dir = "/path/to/tls/cache"
+}
+
 monitor "aws:eu-west-1" {
   name = "AWS Europe"
 
