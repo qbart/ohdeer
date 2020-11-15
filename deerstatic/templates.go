@@ -93,12 +93,24 @@ $(function() {
 			var serverProcessings = [];
 			var contentTransfers = [];
 
+			var day = -1;
 			result.forEach(function(item){
-				labels1.push(item.bucket);
+				var time = item.bucket;
+				var d = new Date(Date.parse(time));
+				if (d.getDay() !== day) {
+					day = d.getDay();
+					time = fmtDate(d.getFullYear(), d.getMonth()+1, d.getDate());
+					time += "   ";
+					time += fmtTime(d.getHours(), d.getMinutes());
+				} else {
+					time = fmtTime(d.getHours(), d.getMinutes());
+				}
+
+				labels1.push(time);
 				failedChecks.push(item.failed_checks);
 				passedChecks.push(item.passed_checks);
 
-				labels2.push(item.bucket);
+				labels2.push(time);
 				dnsLookups.push(item.details.trace.dns_lookup);
 				tcpConnections.push(item.details.trace.tcp_connection);
 				tlsHandshakes.push(item.details.trace.tls_handshake);
@@ -204,6 +216,31 @@ $(function() {
 		});
 	});
 });
+
+function fmtDate(y, m, d) {
+	s = padTime(y);
+	s += "-";
+	s += padTime(m);
+	s += "-";
+	s += padTime(d);
+	return s;
+}
+
+function fmtTime(h, m) {
+	s = padTime(h);
+	s += ":";
+	s += padTime(m);
+	return s;
+}
+
+function padTime(x) {
+	s = "";
+	if (x < 10) {
+		s += "0";
+	}
+	s += x;
+	return s;
+}
 </script>
     </body>
 </html>
