@@ -67,12 +67,7 @@ func main() {
 		}
 
 		view := buildIndexView(cfg, data)
-		err = c.Render(http.StatusOK, "index", view)
-		if err != nil {
-			e.Logger.Error(err)
-			return c.String(http.StatusInternalServerError, "Failed to render view")
-		}
-		return nil
+		return c.Render(http.StatusOK, "index", view)
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))

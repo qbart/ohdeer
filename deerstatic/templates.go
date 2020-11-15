@@ -38,6 +38,10 @@ const IndexTpl = `
                                 {{end}}
 								</p>
 								<div class="charts text-center">
+									<div class="chart-1">
+									</div>
+									<div class="chart-2">
+									</div>
 								</div>
                             </li>
                         {{end}}
@@ -65,25 +69,44 @@ $(function() {
 		const when = $(this).data("when");
 		const li = $(this).closest(".list-group-item");
 		const charts = li.find(".charts:first");
-		charts.html(spinner);
+		const chart1 = charts.find(".chart-1");
+		const chart2 = charts.find(".chart-2");
+		chart1.html(spinner);
 
 		$.get("/api/v1/metrics", { monitor: li.data("monitor"), service: li.data("service"), since: when }, function(result) {
-			charts.html("");
-			var canvas = document.createElement('canvas');
-			charts.append(canvas);
-			var ctx = canvas.getContext('2d');
+			chart1.html("");
+			chart2.html("");
+			var canvas1 = document.createElement('canvas');
+			var canvas2 = document.createElement('canvas');
+			chart1.append(canvas1);
+			chart2.append(canvas2);
+			var ctx1 = canvas1.getContext('2d');
+			var ctx2 = canvas2.getContext('2d');
 
-			var labels = [];
+			var labels1 = [];
 			var failedChecks = [];
 			var passedChecks = [];
+			var labels2 = [];
+			var dnsLookups = [];
+			var tcpConnections = [];
+			var tlsHandshakes = [];
+			var serverProcessings = [];
+			var contentTransfers = [];
 
 			result.forEach(function(item){
-				labels.push(item.bucket);
+				labels1.push(item.bucket);
 				failedChecks.push(item.failed_checks);
 				passedChecks.push(item.passed_checks);
+
+				labels2.push(item.bucket);
+				dnsLookups.push(item.details.trace.dns_lookup);
+				tcpConnections.push(item.details.trace.tcp_connection);
+				tlsHandshakes.push(item.details.trace.tls_handshake);
+				serverProcessings.push(item.details.trace.server_processing);
+				contentTransfers.push(item.details.trace.content_transfer);
 			});
 
-			var datasets = [
+			var datasets1 = [
 			{
 				label: 'Failed checks',
 				backgroundColor: "#dc3545",
@@ -95,17 +118,70 @@ $(function() {
 				data: passedChecks
 			}
 			];
+			var datasets2 = [
+			{
+				label: 'DNS lookup',
+				backgroundColor: "#31baff",
+				data: dnsLookups
+			},
+			{
+				label: 'TCP connection',
+				backgroundColor: "#9ceb4f",
+				data: tcpConnections
+			},
+			{
+				label: 'TLS handshake',
+				backgroundColor: "#ff9326",
+				data: tlsHandshakes
+			},
+			{
+				label: 'Server processing',
+				backgroundColor: "#9d8cff",
+				data: serverProcessings
+			},
+			{
+				label: 'Content transfer',
+				backgroundColor: "#18ffe0",
+				data: contentTransfers
+			},
+			];
 
-			new Chart(ctx, {
+			new Chart(ctx1, {
 				type: 'bar',
 				data: {
-					labels: labels,
-					datasets: datasets
+					labels: labels1,
+					datasets: datasets1
 				},
 				options: {
 					title: {
 						display: true,
-						text: 'Details'
+						text: 'HTTP checks'
+					},
+					tooltips: {
+						mode: 'index',
+						intersect: false
+					},
+					responsive: true,
+					scales: {
+						xAxes: [{
+							stacked: true,
+						}],
+						yAxes: [{
+							stacked: true
+						}]
+					}
+				}
+			});
+			new Chart(ctx2, {
+				type: 'bar',
+				data: {
+					labels: labels2,
+					datasets: datasets2
+				},
+				options: {
+					title: {
+						display: true,
+						text: 'Request tracing [μs] (Avg per time bucket)'
 					},
 					tooltips: {
 						mode: 'index',
@@ -123,7 +199,8 @@ $(function() {
 				}
 			});
 		}).fail(function() {
-			charts.text("Failed to fetch data");
+			chart1.text("Failed to fetch data");
+			chart2.text("");
 		});
 	});
 });

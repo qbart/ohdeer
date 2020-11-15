@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
-	_ "github.com/lib/pq" // postgres adapter
+	"github.com/lib/pq" // postgres adapter
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohtea/tea"
 )
@@ -134,14 +133,22 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 		sb.String(),
 	)
 
+	// fmt.Println(sql)
+
 	rows, err := m.db.QueryContext(queryCtx, sql)
 	if err != nil {
 		return nil, err
 	}
 	res := make([]*deer.Metric, 0, 24)
 
+	var (
+		dnsLookup, tcpConnection, tlsHandshake, serverProcessing, contentTransfer, total *float64
+	)
+
 	for rows.Next() {
 		var metric deer.Metric
+		metric.Details.Trace = &deer.Trace{}
+
 		if err := rows.Scan(
 			&metric.MonitorID,
 			&metric.ServiceID,
@@ -149,8 +156,33 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 			&metric.Health,
 			&metric.PassedChecks,
 			&metric.FailedChecks,
+			&dnsLookup,
+			&tcpConnection,
+			&tlsHandshake,
+			&serverProcessing,
+			&contentTransfer,
+			&total,
 		); err != nil {
 			return nil, err
+		}
+		unit := time.Microsecond
+		if dnsLookup != nil {
+			metric.Details.Trace.DNSLookup = time.Duration(*dnsLookup) / unit
+		}
+		if tcpConnection != nil {
+			metric.Details.Trace.TCPConnection = time.Duration(*tcpConnection) / unit
+		}
+		if tlsHandshake != nil {
+			metric.Details.Trace.TLSHandshake = time.Duration(*tlsHandshake) / unit
+		}
+		if serverProcessing != nil {
+			metric.Details.Trace.ServerProcessing = time.Duration(*serverProcessing) / unit
+		}
+		if contentTransfer != nil {
+			metric.Details.Trace.ContentTransfer = time.Duration(*contentTransfer) / unit
+		}
+		if total != nil {
+			metric.Details.Trace.Total = time.Duration(*total) / unit
 		}
 		res = append(res, &metric)
 	}
@@ -165,7 +197,13 @@ SELECT
   time_bucket_gapfill(%s, at) AS bucket,
   COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health,
   COALESCE(count(*) FILTER (WHERE success IS true), 0) AS passed_checks,
-  COALESCE(count(*) FILTER (WHERE success IS false), 0) AS failed_checks
+  COALESCE(count(*) FILTER (WHERE success IS false), 0) AS failed_checks,
+  AVG((details->'trace'->>'dns_lookup')::numeric) AS dns_lookup,
+  AVG((details->'trace'->>'tcp_connection')::numeric) AS tcp_connection,
+  AVG((details->'trace'->>'tls_handshake')::numeric) AS tls_handshake,
+  AVG((details->'trace'->>'server_processing')::numeric) AS server_processing,
+  AVG((details->'trace'->>'content_transfer')::numeric) AS content_transfer,
+  AVG((details->'trace'->>'total')::numeric) AS total
 FROM metrics
 WHERE (at BETWEEN %s AND %s) AND
 %s
