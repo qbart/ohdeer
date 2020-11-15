@@ -8,3 +8,6 @@ build:
 
 run:
 	DATABASE_URL=postgres://ohdeer:secret@localhost:5432/deer?sslmode=disable go run main.go
+
+dc:
+	docker-compose up
