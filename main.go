@@ -21,7 +21,7 @@ import (
 func main() {
 	e := echo.New()
 	e.Use(middleware.Recover())
-	// e.Use(middleware.Logger())
+	e.Use(middleware.Logger())
 	e.Use(middleware.Secure())
 	e.Logger.SetLevel(log.INFO)
 
@@ -67,7 +67,11 @@ func main() {
 		}
 
 		view := buildIndexView(cfg, data)
-		return c.Render(http.StatusOK, "index", view)
+		if err = c.Render(http.StatusOK, "index", view); err != nil {
+			e.Logger.Error(err)
+			return err
+		}
+		return nil
 	})
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))

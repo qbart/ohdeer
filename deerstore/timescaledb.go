@@ -118,7 +118,7 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 		}
 		sb.WriteString(")")
 		if mi < len(filter.ActiveServices)-1 {
-			sb.WriteString(" AND ")
+			sb.WriteString(" OR ")
 		}
 		mi++
 	}
@@ -128,6 +128,8 @@ func (m *TimescaleDB) Read(ctx context.Context, filter *deer.ReadFilter) ([]*dee
 	sql := fmt.Sprintf(
 		metricsSQL,
 		pq.QuoteLiteral(bucket),
+		pq.QuoteLiteral(intervalStart.Format(time.RFC3339)),
+		pq.QuoteLiteral(intervalStop.Format(time.RFC3339)),
 		pq.QuoteLiteral(intervalStart.Format(time.RFC3339)),
 		pq.QuoteLiteral(intervalStop.Format(time.RFC3339)),
 		sb.String(),
@@ -194,7 +196,7 @@ const metricsSQL string = `
 SELECT
   monitor_id,
   service_id,
-  time_bucket_gapfill(%s, at) AS bucket,
+  time_bucket_gapfill(%s, at, %s, %s) AS bucket,
   COALESCE(count(*) FILTER (WHERE success IS true) / count(*)::numeric, -1) AS health,
   COALESCE(count(*) FILTER (WHERE success IS true), 0) AS passed_checks,
   COALESCE(count(*) FILTER (WHERE success IS false), 0) AS failed_checks,
@@ -205,8 +207,7 @@ SELECT
   AVG((details->'trace'->>'content_transfer')::numeric) AS content_transfer,
   AVG((details->'trace'->>'total')::numeric) AS total
 FROM metrics
-WHERE (at BETWEEN %s AND %s) AND
-%s
+WHERE (at BETWEEN %s AND %s) AND %s
 GROUP BY monitor_id, service_id, bucket
 ORDER BY monitor_id, service_id, bucket
 `
