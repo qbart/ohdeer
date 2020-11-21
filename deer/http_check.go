@@ -73,7 +73,7 @@ func (h *HTTPCheck) Check(resp *Response) bool {
 
 	for _, expect := range h.Expectations {
 		switch expect.Subject {
-		case "subject":
+		case "status":
 			status := resp.Resp.StatusCode
 			found := false
 			for _, s := range expect.Inclusion {

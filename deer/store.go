@@ -57,6 +57,8 @@ func (f *ReadFilter) IntervalToDuration() time.Duration {
 	switch f.IntervalUnit {
 	case "hour":
 		return dur * time.Hour
+	case "day":
+		return dur * 24 * time.Hour
 	}
 
 	return time.Duration(0)

@@ -127,22 +127,20 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 		},
 	}
 
+	times[tReqStart] = time.Now()
 	resp.Resp, resp.Err = client.Do(req)
 	if resp.Err == nil {
 		io.Copy(ioutil.Discard, resp.Resp.Body) // simulate body read
 	}
-
 	times[tReqDone] = time.Now()
-	times[tReqStart] = times[tDNSStart]
-	if times[tReqStart].IsZero() {
-		times[tReqStart] = times[tConnectStart]
-	}
 
 	resp.Trace.DNSLookup = times[tDNSDone].Sub(times[tDNSStart])
 	resp.Trace.TCPConnection = times[tConnectDone].Sub(times[tConnectStart])
 	resp.Trace.TLSHandshake = times[tTLSDone].Sub(times[tTLSStart])
-	resp.Trace.ServerProcessing = times[tGotFirstByte].Sub(times[tGotConn])
-	resp.Trace.ContentTransfer = times[tReqDone].Sub(times[tGotFirstByte])
+	if !times[tGotFirstByte].IsZero() {
+		resp.Trace.ServerProcessing = times[tGotFirstByte].Sub(times[tGotConn])
+		resp.Trace.ContentTransfer = times[tReqDone].Sub(times[tGotFirstByte])
+	}
 	resp.Trace.Total = times[tReqDone].Sub(times[tReqStart])
 
 	// fmt.Println(resp.Trace)

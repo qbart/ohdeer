@@ -23,19 +23,11 @@ const IndexTpl = `
 					    <strong>{{.Name}}</strong>
 					</p>
                     <ul class="list-group">
+						{{$MonitorID:=.ID}}
                         {{range .Services}}
-                            <li class="list-group-item" data-service="{{.ID}}" data-monitor="{{.MonitorID}}">
+                            <li class="list-group-item" data-service="{{.ID}}" data-monitor="{{$MonitorID}}">
                                 <strong>{{.Name}}</strong>
-								<p class="text-center">
-                                {{range .Health}}
-                                    {{ if eq .Health 1.0 }}
-									<button type="button" class="clickable btn btn-success" data-when="{{.When}}">&nbsp;</button>
-                                    {{ else if eq .Health -1.0 }}
-									<button type="button" class="btn btn-secondary" data-when="{{.When}}">&nbsp;</button>
-                                    {{ else }}
-									<button type="button" class="clickable btn btn-danger" data-when="{{.When}}" data-health="{{.Health}}">&nbsp;</button>
-                                    {{end}}
-                                {{end}}
+								<p class="buttons text-center">
 								</p>
 								<div class="charts text-center">
 									<div class="chart-1">
@@ -65,15 +57,44 @@ const IndexTpl = `
 $(function() {
 	const spinner = $(".spinner-tpl").html();
 
-	$("button.clickable").on("click", function() {
+	$.get("/api/v1/config", {}, function(result) {
+		result.monitors.forEach(function(m) {
+			m.services.forEach(function(s) {
+				const M = m.id;
+				const S = s.id;
+				$.get("/api/v1/metrics/default/"+M+"/"+S, {}, function(result) {
+					const li = $("li[data-monitor='"+M+"'][data-service='"+S+"']");
+					const b = li.find(".buttons");
+					b.text(result.uptime);
+					result.metrics.forEach(function(m) {
+						var bt = $("<button>").attr("type", "button").data("when", m.bucket);
+						if (m.health === 1.0) {
+							bt.addClass("clickable btn btn-success");
+						} else if (m.health === -1) {
+							bt.addClass("btn btn-secondary");
+						} else {
+							bt.addClass("btn btn-danger clickable");
+						}
+						b.append(bt);
+					});
+				});
+			})
+		})
+	})
+
+	$("body").on("click", "button.clickable", function() {
+		const self = $(this);
 		const when = $(this).data("when");
 		const li = $(this).closest(".list-group-item");
 		const charts = li.find(".charts:first");
 		const chart1 = charts.find(".chart-1");
 		const chart2 = charts.find(".chart-2");
 		chart1.html(spinner);
+		const M = li.data("monitor");
+		const S = li.data("service");
 
-		$.get("/api/v1/metrics", { monitor: li.data("monitor"), service: li.data("service"), since: when }, function(result) {
+		$.get("/api/v1/metrics/details/"+M+"/"+S, { since: when }, function(result) {
+			self.text(result.uptime);
 			chart1.html("");
 			chart2.html("");
 			var canvas1 = document.createElement('canvas');
@@ -94,7 +115,7 @@ $(function() {
 			var contentTransfers = [];
 
 			var day = -1;
-			result.forEach(function(item){
+			result.metrics.forEach(function(item){
 				var time = item.bucket;
 				var d = new Date(Date.parse(time));
 				if (d.getDay() !== day) {

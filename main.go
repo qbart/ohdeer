@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -53,21 +54,7 @@ func main() {
 	}
 	e.Logger.Info("Starting server")
 	e.GET("/", func(c echo.Context) error {
-		data, err := store.Read(context.Background(), &deer.ReadFilter{
-			Since:          time.Now().Add(-time.Duration(23) * time.Hour),
-			TimeBucket:     1,
-			TimeBucketUnit: "hour",
-			Interval:       23,
-			IntervalUnit:   "hour",
-			ActiveServices: cfg.ActiveServices(),
-		})
-		if err != nil {
-			e.Logger.Error(err)
-			return c.String(http.StatusInternalServerError, "Failed to fetch metrics")
-		}
-
-		view := buildIndexView(cfg, data)
-		if err = c.Render(http.StatusOK, "index", view); err != nil {
+		if err = c.Render(http.StatusOK, "index", cfg); err != nil {
 			e.Logger.Error(err)
 			return err
 		}
@@ -76,21 +63,18 @@ func main() {
 	e.GET("/api/v1/config", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, buildConfigResp(cfg))
 	})
-	e.GET("/api/v1/metrics", func(c echo.Context) error {
-		active := map[string][]string{}
-		active[c.QueryParam("monitor")] = []string{c.QueryParam("service")}
-		since, err := time.Parse(time.RFC3339, c.QueryParam("since"))
+	e.GET("/api/v1/metrics/default/:monitor/:service", func(c echo.Context) error {
+		active := activeFilter(c.Param("monitor"), c.Param("service"))
+		since := time.Now().Add(-time.Duration(89) * 24 * time.Hour)
 
-		if err != nil {
-			return c.String(http.StatusUnprocessableEntity, err.Error())
-		}
+		fmt.Println(active)
 
-		rows, err := store.Read(context.Background(), &deer.ReadFilter{
+		metrics, err := store.Read(context.Background(), &deer.ReadFilter{
 			Since:          since,
 			TimeBucket:     1,
-			TimeBucketUnit: "minute",
-			Interval:       1,
-			IntervalUnit:   "hour",
+			TimeBucketUnit: "day",
+			Interval:       89,
+			IntervalUnit:   "day",
 			ActiveServices: active,
 		})
 
@@ -98,7 +82,35 @@ func main() {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
 
-		return c.JSON(http.StatusOK, rows)
+		return c.JSON(http.StatusOK, defaultMetrics{
+			Metrics: metrics,
+			Uptime:  calcUptimeString(metrics),
+		})
+	})
+	e.GET("/api/v1/metrics/details/:monitor/:service", func(c echo.Context) error {
+		active := activeFilter(c.Param("monitor"), c.Param("service"))
+		since, err := time.Parse(time.RFC3339, c.QueryParam("since"))
+
+		if err != nil {
+			return c.String(http.StatusUnprocessableEntity, err.Error())
+		}
+		metrics, err := store.Read(context.Background(), &deer.ReadFilter{
+			Since:          since,
+			TimeBucket:     1,
+			TimeBucketUnit: "hour",
+			Interval:       1,
+			IntervalUnit:   "day",
+			ActiveServices: active,
+		})
+
+		if err != nil {
+			return c.String(http.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, defaultMetrics{
+			Metrics: metrics,
+			Uptime:  calcUptimeString(metrics),
+		})
 	})
 
 	go func() {
@@ -127,6 +139,32 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
+}
+
+type defaultMetrics struct {
+	Uptime  string         `json:"uptime"`
+	Metrics []*deer.Metric `json:"metrics"`
+}
+
+func activeFilter(monitor, service string) map[string][]string {
+	active := map[string][]string{}
+	active[monitor] = []string{service}
+	return active
+}
+
+func calcUptimeString(metrics []*deer.Metric) string {
+	sum := 0.0
+	count := 0.0
+	uptime := "no data"
+	for _, m := range metrics {
+		sum += float64(m.PassedChecks)
+		count += float64(m.PassedChecks + m.FailedChecks)
+	}
+	if count > 0.0 {
+		upt := sum * 100.0 / count
+		uptime = fmt.Sprintf("%0.2f%%", upt)
+	}
+	return uptime
 }
 
 type configResp struct {
@@ -160,75 +198,6 @@ func buildConfigResp(cfg *deer.Config) *configResp {
 	}
 
 	return &r
-}
-
-func buildIndexView(cfg *deer.Config, data []*deer.Metric) *indexView {
-	monitorNames := map[string]string{}
-	serviceNames := map[string]string{}
-
-	for _, m := range cfg.Monitors {
-		monitorNames[m.ID] = m.Name
-		for _, s := range m.Services {
-			serviceNames[s.ID] = s.Name
-		}
-	}
-
-	view := indexView{
-		Monitors: make([]*indexViewMonitor, 0),
-	}
-	pm := ""
-	ps := ""
-	var monitor *indexViewMonitor
-	var service *indexViewService
-
-	for _, m := range data {
-		if pm != m.MonitorID {
-			pm = m.MonitorID
-			ps = "" // reset service
-			monitor = &indexViewMonitor{
-				Name:     monitorNames[m.MonitorID],
-				Services: make([]*indexViewService, 0),
-			}
-			view.Monitors = append(view.Monitors, monitor)
-		}
-
-		if ps != m.ServiceID {
-			ps = m.ServiceID
-			service = &indexViewService{
-				MonitorID: m.MonitorID,
-				ID:        m.ServiceID,
-				Name:      serviceNames[m.ServiceID],
-				Health:    make([]indexViewHealth, 0),
-			}
-			monitor.Services = append(monitor.Services, service)
-		}
-		service.Health = append(service.Health, indexViewHealth{
-			Health: m.Health,
-			When:   m.Bucket.Format(time.RFC3339),
-		})
-	}
-	return &view
-}
-
-type indexView struct {
-	Monitors []*indexViewMonitor
-}
-
-type indexViewMonitor struct {
-	Name     string
-	Services []*indexViewService
-}
-
-type indexViewService struct {
-	MonitorID string
-	ID        string
-	Name      string
-	Health    []indexViewHealth
-}
-
-type indexViewHealth struct {
-	Health float64
-	When   string
 }
 
 type myTemplate struct {
