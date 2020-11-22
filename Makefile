@@ -11,3 +11,7 @@ run:
 
 dc:
 	docker-compose up
+
+docker.build:
+	docker build . -t  qbart/ohdeer:${TAG}
+	docker push qbart/ohdeer:${TAG}
