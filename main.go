@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -20,6 +21,9 @@ import (
 )
 
 func main() {
+	configPath := flag.String("C", "./ohdeer.hcl", "config file path")
+	flag.Parse()
+
 	e := echo.New()
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
@@ -27,7 +31,7 @@ func main() {
 	e.Logger.SetLevel(log.INFO)
 
 	e.Logger.Info("Loading config")
-	cfg, err := deer.LoadConfig("./ohdeer.hcl")
+	cfg, err := deer.LoadConfig(*configPath)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
@@ -66,8 +70,6 @@ func main() {
 	e.GET("/api/v1/metrics/default/:monitor/:service", func(c echo.Context) error {
 		active := activeFilter(c.Param("monitor"), c.Param("service"))
 		since := time.Now().Add(-time.Duration(89) * 24 * time.Hour)
-
-		fmt.Println(active)
 
 		metrics, err := store.Read(context.Background(), &deer.ReadFilter{
 			Since:          since,

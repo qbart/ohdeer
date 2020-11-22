@@ -1,0 +1,7 @@
+*.hcl
+Makefile
+docker-compose.yml
+.git
+.cache
+bin
+*.md
