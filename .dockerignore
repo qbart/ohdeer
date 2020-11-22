@@ -1,6 +1,6 @@
 *.hcl
 Makefile
-docker-compose.yml
+*.yml
 .git
 .cache
 bin

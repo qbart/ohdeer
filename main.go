@@ -124,7 +124,7 @@ func main() {
 		}
 
 		if err != nil {
-			e.Logger.Info("Shutting down the server")
+			e.Logger.Error(err)
 		}
 	}()
 
