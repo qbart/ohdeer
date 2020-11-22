@@ -9,16 +9,15 @@ import (
 
 // Config keeps monitor configuration.
 type Config struct {
-	TLS      *TLS       `hcl:"tls,block"`
+	Server   *Server    `hcl:"server,block"`
 	Monitors []*Monitor `hcl:"monitor,block"`
 }
 
-// TLS configuration.
-type TLS struct {
-	Domain   string `hcl:"domain"`
-	CacheDir string `hcl:"cache_dir"`
-	CertFile string `hcl:"cert_file"`
-	KeyFile  string `hcl:"key_file"`
+// Server configuration.
+type Server struct {
+	BindAddress string `hcl:"bind_address"`
+	TLSCertFile string `hcl:"tls_cert_file"`
+	TLSKeyFile  string `hcl:"tls_key_file"`
 }
 
 // LoadConfig loads and parses config from given path.
@@ -37,8 +36,11 @@ func ParseConfig(path string, src []byte) (*Config, error) {
 	err := hclsimple.Decode(path, src, nil, &cfg)
 
 	if err == nil {
-		if cfg.TLS == nil {
-			cfg.TLS = &TLS{}
+		if cfg.Server == nil {
+			cfg.Server = &Server{}
+		}
+		if cfg.Server.BindAddress == "" {
+			cfg.Server.BindAddress = ":1820"
 		}
 		for _, m := range cfg.Monitors {
 			if len(m.ID) == 0 {
@@ -80,4 +82,9 @@ func (c *Config) ActiveServices() map[string][]string {
 		}
 	}
 	return r
+}
+
+// IsTLSConfigured returns true if config for TLS is valid.
+func (c *Config) IsTLSConfigured() bool {
+	return c.Server.TLSCertFile != "" && c.Server.TLSKeyFile != ""
 }

@@ -9,17 +9,19 @@ import (
 func TestParseConfig(t *testing.T) {
 	g := goblin.Goblin(t)
 	g.Describe(".ParseConfig", func() {
-		g.Describe("TLS config", func() {
+		g.Describe("Server config", func() {
 			g.It("Reads config", func() {
 				c, _ := ParseConfig("http.hcl", []byte(`
-					tls {
-						domain = "localhost.dev"
-						cache_dir = "/tmp"
+					server {
+						bind_address = ":443"
+						tls_cert_file = "/tmp/cert.pem"
+						tls_key_file = "/tmp/key.pem"
 					}
 				`))
 
-				g.Assert(c.TLS.Domain).Equal("localhost.dev")
-				g.Assert(c.TLS.CacheDir).Equal("/tmp")
+				g.Assert(c.Server.BindAddress).Equal(":443")
+				g.Assert(c.Server.TLSCertFile).Equal("/tmp/cert.pem")
+				g.Assert(c.Server.TLSKeyFile).Equal("/tmp/key.pem")
 			})
 		})
 
@@ -49,8 +51,9 @@ func TestParseConfig(t *testing.T) {
 			}
 
 			g.It("Sets tls config to default", func() {
-				g.Assert(c.TLS.Domain).Equal("")
-				g.Assert(c.TLS.CacheDir).Equal("")
+				g.Assert(c.Server.BindAddress).Equal(":1820")
+				g.Assert(c.Server.TLSCertFile).Equal("")
+				g.Assert(c.Server.TLSKeyFile).Equal("")
 			})
 
 			g.It("Parses service definition correctly", func() {

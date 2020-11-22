@@ -9,8 +9,9 @@
 
 ```hcl
 tls {
-    domain    = "your-production-domain-for-autocert"
-    cache_dir = "/path/to/tls/cache"
+    bind_address  = ":1820"
+    tls_cert_file = ""
+    tls_key_file  = ""
 }
 
 monitor "aws:eu-west-1" {

@@ -17,7 +17,6 @@ import (
 	"github.com/qbart/ohdeer/deerstatic"
 	"github.com/qbart/ohdeer/deerstore"
 	"github.com/qbart/ohtea/tea"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -25,6 +24,7 @@ func main() {
 	flag.Parse()
 
 	e := echo.New()
+	e.HideBanner = true
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 	e.Use(middleware.Secure())
@@ -34,12 +34,6 @@ func main() {
 	cfg, err := deer.LoadConfig(*configPath)
 	if err != nil {
 		e.Logger.Fatal(err)
-	}
-	if cfg.TLS.Domain != "" {
-		if cfg.TLS.CacheDir != "" {
-			e.AutoTLSManager.Cache = autocert.DirCache(cfg.TLS.CacheDir)
-		}
-		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.TLS.Domain)
 	}
 
 	e.Logger.Info("Connecting to store")
@@ -117,14 +111,16 @@ func main() {
 
 	go func() {
 		var err error
-		if cfg.TLS.Domain != "" {
-			err = e.StartTLS(":443", cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		if cfg.IsTLSConfigured() {
+			err = e.StartTLS(cfg.Server.BindAddress, cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile)
 		} else {
-			err = e.Start(":1820")
+			err = e.Start(cfg.Server.BindAddress)
 		}
 
 		if err != nil {
-			e.Logger.Error(err)
+			if err.Error() != "http: Server closed" {
+				e.Logger.Error(err)
+			}
 		}
 	}()
 
@@ -132,15 +128,18 @@ func main() {
 	runner := deer.NewRunner(cfg, store)
 	go runner.Start(context.Background())
 
-	tea.SysCallWaitDefault()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	loop := tea.NewLoop()
+	loop.OnShutdown(func(ctx context.Context) {
 
-	e.Logger.Info("Shutting down the runner")
-	runner.Shutdown(ctx)
-	if err := e.Shutdown(ctx); err != nil {
-		e.Logger.Fatal(err)
-	}
+		e.Logger.Info("Shutting down the runner")
+		runner.Shutdown(ctx)
+		e.Logger.Info("Shutting down the server")
+		if err := e.Shutdown(ctx); err != nil {
+			e.Logger.Fatal(err)
+		}
+
+	})
+	loop.Run()
 }
 
 type defaultMetrics struct {
