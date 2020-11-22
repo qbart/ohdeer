@@ -5,7 +5,7 @@ ADD . /src
 RUN go mod download
 RUN CGO_ENABLED=0 go build -o /bin/ohdeer
 
-FROM scratch
+FROM alpine:3.12.1
 COPY --from=build /bin/ohdeer /bin/ohdeer
 ENTRYPOINT ["/bin/ohdeer"]
 

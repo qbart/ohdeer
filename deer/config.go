@@ -17,6 +17,8 @@ type Config struct {
 type TLS struct {
 	Domain   string `hcl:"domain"`
 	CacheDir string `hcl:"cache_dir"`
+	CertFile string `hcl:"cert_file"`
+	KeyFile  string `hcl:"key_file"`
 }
 
 // LoadConfig loads and parses config from given path.

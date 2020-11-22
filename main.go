@@ -118,7 +118,7 @@ func main() {
 	go func() {
 		var err error
 		if cfg.TLS.Domain != "" {
-			err = e.StartAutoTLS(":443")
+			err = e.StartTLS(":443", cfg.TLS.CertFile, cfg.TLS.KeyFile)
 		} else {
 			err = e.Start(":1820")
 		}
