@@ -9,6 +9,7 @@ type CheckResult struct {
 	At        time.Time
 	Success   bool
 	Trace     *Trace
+	Error     error
 }
 
 // Check is a interface for monitoring checks.
@@ -21,5 +22,11 @@ type Check interface {
 
 // Details for checks.
 type Details struct {
-	Trace *Trace `json:"trace"`
+	Trace *Trace        `json:"trace"`
+	Error *ErrorDetails `json:"error,omitempty"`
+}
+
+// ErrorDetails contains response error.
+type ErrorDetails struct {
+	Message string `json:"message"`
 }

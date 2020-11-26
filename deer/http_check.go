@@ -58,6 +58,7 @@ func (h *HTTPCheck) RunFn(s Store) func() {
 			At:        now,
 			Success:   success,
 			Trace:     &resp.Trace,
+			Error:     resp.Err,
 		}
 		store.Save(context.Background(), &result)
 	}
