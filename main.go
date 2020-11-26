@@ -10,8 +10,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/qbart/ohdeer/deer"
 	"github.com/qbart/ohdeer/deerstatic"
@@ -29,6 +31,16 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Secure())
 	e.Logger.SetLevel(log.INFO)
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: os.Getenv("SENTRY_DSN"),
+	})
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
+	defer sentry.Flush(2 * time.Second)
+
+	e.Use(sentryecho.New(sentryecho.Options{}))
 
 	e.Logger.Info("Loading config")
 	cfg, err := deer.LoadConfig(*configPath)

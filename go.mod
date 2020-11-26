@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/franela/goblin v0.0.0-20201006155558-6240afcb2eb7
+	github.com/getsentry/sentry-go v0.8.0 // indirect
 	github.com/google/go-cmp v0.5.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.7.0
 	github.com/jasonlvhit/gocron v0.0.1
