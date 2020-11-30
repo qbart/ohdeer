@@ -67,6 +67,8 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 	//
 	// https://golang.org/pkg/net/http/httptrace/#ClientTrace
 	//
+
+	var traceErr error
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dnsStartInfo httptrace.DNSStartInfo) {
 			times[tDNSStart] = time.Now()
@@ -79,7 +81,7 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 		},
 		ConnectDone: func(network, addr string, err error) {
 			if err != nil {
-				//TODO
+				traceErr = err
 			}
 			times[tConnectDone] = time.Now()
 		},
@@ -94,7 +96,7 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 		},
 		TLSHandshakeDone: func(_ tls.ConnectionState, err error) {
 			if err != nil {
-				//TODO
+				traceErr = err
 			}
 			times[tTLSDone] = time.Now()
 		},
@@ -129,6 +131,9 @@ func (*Request) Get(address string, timeout time.Duration) *Response {
 
 	times[tReqStart] = time.Now()
 	resp.Resp, resp.Err = client.Do(req)
+	if traceErr != nil {
+		resp.Err = traceErr
+	}
 	if resp.Err == nil {
 		io.Copy(ioutil.Discard, resp.Resp.Body) // simulate body read
 	}
