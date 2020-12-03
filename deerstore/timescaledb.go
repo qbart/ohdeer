@@ -81,6 +81,11 @@ func (m *TimescaleDB) Close(ctx context.Context) {
 func (m *TimescaleDB) Save(ctx context.Context, result *deer.CheckResult) {
 	var d deer.Details
 	d.Trace = result.Trace
+
+	if result.StatusCode != 0 {
+		d.Response = &deer.ResponseDetails{StatusCode: result.StatusCode}
+	}
+
 	if result.Error != nil {
 		d.Error = &deer.ErrorDetails{Message: result.Error.Error()}
 	}

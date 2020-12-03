@@ -60,6 +60,10 @@ func (h *HTTPCheck) RunFn(s Store) func() {
 			Trace:     &resp.Trace,
 			Error:     resp.Err,
 		}
+		if resp.Resp != nil {
+			result.StatusCode = resp.Resp.StatusCode
+		}
+
 		store.Save(context.Background(), &result)
 	}
 }
